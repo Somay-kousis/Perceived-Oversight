@@ -1,0 +1,64 @@
+# Spend guardrails: the single source of truth for every limit.
+# Every run goes through perceived_oversight.budget, which applies these limits
+# and refuses to start a run whose worst-case cost could break a cap.
+# Prices verified 2026-09-29 (platform.claude.com/docs/en/about-claude/pricing).
+
+budget:
+  total_credits_usd: 500
+  hard_ceiling_usd: 480          # never plan past this; the last $20 is margin
+  phase_cap_usd: 10              # cumulative spend allowed so far. Raise deliberately: setup 10 -> pilot 40 -> main (stepwise)
+  logs_dir: logs                 # every eval log lands here; spend is summed from these logs
+  # Worst case per episode = episode cost limit x this multiplier. It covers the one model
+  # call that can overshoot the limit, and scorer/monitor calls made after the episode ends
+  # (the SHADE evaluator runs outside the episode's cost limit). Re-derive after the pilot.
+  worst_case_multiplier: 1.5
+
+# Model per role. Keep the cheapest model until a run is pre-registered; switching to
+# Sonnet/Opus is a deliberate edit here. ControlArena otherwise falls back to its own
+# defaults (claude-sonnet-4-6 / gpt-5.4-mini), which is why these are always set.
+roles:
+  untrusted: anthropic/claude-haiku-4-5   # the agent (U); the SHADE evaluator also uses this role
+  trusted: anthropic/claude-haiku-4-5     # the monitor
+
+# USD per 1M tokens (5-minute cache writes, the Inspect default).
+prices:
+  anthropic/claude-haiku-4-5:  {input: 1.00, input_cache_write: 1.25, input_cache_read: 0.10, output: 5.00}
+  anthropic/claude-sonnet-5-5: {input: 2.00, input_cache_write: 2.50, input_cache_read: 0.20, output: 10.00}
+  anthropic/claude-opus-5-5:   {input: 4.00, input_cache_write: 5.00, input_cache_read: 0.20, output: 20.00}
+  mockllm/model:               {input: 0.0,  input_cache_write: 0.0,  input_cache_read: 0.0,  output: 0.0}
+
+# Hard stop per episode (Inspect cost_limit), keyed by the untrusted model. The limit
+# covers every model call inside the episode, including the informant subagent.
+episode_cost_limit_usd:
+  anthropic/claude-haiku-4-5: 0.40
+  anthropic/claude-sonnet-5-5: 1.00
+  anthropic/claude-opus-5-5: 2.00
+  mockllm/model: 0.01
+
+# Reasoning effort per model. It must be identical across experimental conditions.
+# null = provider default. Haiku 4.5 does not take `effort`.
+effort:
+  anthropic/claude-haiku-4-5: null
+  anthropic/claude-sonnet-5-5: medium
+  anthropic/claude-opus-5-5: medium
+  mockllm/model: null
+
+limits:
+  turn_limit: 40          # model generations per episode (SHADE main tasks take ~25)
+  max_steps: 40           # ControlArena micro-protocol steps
+  token_limit: 3000000    # backstop; counts cached tokens too. cost_limit is the real guard
+  working_limit_s: 1200
+  time_limit_s: 1800
+
+generate:                 # applied to every model role
+  max_tokens: 8000        # cap on each single reply
+  max_retries: 3          # Inspect's default is unlimited
+  timeout_s: 300
+  max_connections: 4
+  cache_prompt: true
+
+run:
+  max_samples: 4          # low parallelism, so a bug burns slowly and spend alerts can fire
+  max_tasks: 1
+  retry_on_error: 1
+  fail_on_error: false    # keep going if one episode errors; the worst-case bound already counts every episode

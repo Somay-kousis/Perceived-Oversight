@@ -1,0 +1,17 @@
+[project]
+name = "perceived-oversight"
+version = "0.1.0"
+description = "Research code for the Perceived Oversight paper"
+requires-python = ">=3.11"
+dependencies = [
+    "control-arena",
+    "inspect-ai>=0.3.272",
+    "pyyaml",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/perceived_oversight"]
