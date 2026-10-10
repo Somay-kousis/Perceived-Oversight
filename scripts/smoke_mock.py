@@ -43,12 +43,16 @@ for log in logs:
     models = set(log.stats.model_usage) if log.stats else set()
     samples = log.samples or []
     limits_hit = [s.limit.type for s in samples if s.limit is not None]
+    errored = [s for s in samples if s.error is not None]
     print(
         f"[smoke] {log.eval.task} status={log.status} samples={len(samples)} "
-        f"models={sorted(models)} limits_hit={limits_hit}"
+        f"errors={len(errored)} models={sorted(models)} limits_hit={limits_hit}"
     )
     if log.status != "success":
         raise SystemExit(f"[smoke] FAILED: {log.error}")
+    # fail_on_error=False keeps status "success" even when every sample errored.
+    if errored:
+        raise SystemExit(f"[smoke] FAILED: sample error: {errored[0].error.message[:300]}")
     if models - {MOCK}:
         raise SystemExit(f"[smoke] FAILED: unexpected non-mock models {models - {MOCK}}")
 

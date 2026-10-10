@@ -7,11 +7,15 @@ dependencies = [
     "control-arena",
     "inspect-ai>=0.3.272",
     "pyyaml",
+    "shade-arena @ git+https://github.com/rasmusfaber/SHADE-Arena.git@wheels",
 ]
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[tool.hatch.metadata]
+allow-direct-references = true
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/perceived_oversight"]
