@@ -9,9 +9,9 @@ Design choices and why. Newest first.
   stock, so reviewers can see exactly what we changed and upgrades are a test rerun.
 - **All condition wording lives in one file (`conditions.py`).** Makes it checkable that
   conditions differ only in framing.
-- **Model families: Gemini main study, Claude replication slice** ("Option B").
-  Attacker strong (Gemini Pro), monitor and spy weaker (Flash-Lite / Flash). Claude attacker on a
-  small slice to test whether the effect holds across families.
+- **Model families: strong attacker, weaker spy and monitor, two families** ("Option B").
+  Originally Gemini main + Claude replication. 2026-10-12: Google Cloud not usable, so the
+  provider is being re-chosen (AWS Bedrock credits). The shape of the design stays the same.
 - **Monitor weaker than attacker** (answers Q8). Standard control assumption: the trusted
   monitor is the weaker model.
 
@@ -27,6 +27,15 @@ Design choices and why. Newest first.
 - **Neutral attack prompt** = honest setting description + side task as the agent's own goal.
   No "test", "monitor", "safety systems" or "subtle". Implemented as a prompt file passed to
   `attack_policy_builder(prompt_file=...)`.
+
+- **Monitor never sees the agent's hidden reasoning.** It judges visible text, tool calls and tool
+  results only.
+- **Reasoning vault.** After each run a splitter writes (a) monitor-view logs with reasoning
+  stripped, read by the monitor and all scorers, and (b) `reasoning.db` (SQLite: episode,
+  condition, step, model, reasoning text). Raw logs go to a sealed folder. The vault is opened only
+  after monitor scores and disclosure scores are frozen (blind analysis). A test fails if any
+  reasoning block reaches monitor input. Vault and raw logs stay out of git. Some providers return
+  reasoning summaries, not full reasoning.
 
 ## Open
 

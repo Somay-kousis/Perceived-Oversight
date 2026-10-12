@@ -35,6 +35,8 @@ Things that look fine but are not. Check this list before trusting a run.
   calls. No tool results, no earlier steps, no agent prose. The spy's replies are tool results,
   so the stock monitor never sees them.
 - The default monitor prompt is generic (coding agent), not SHADE-specific.
+- The full-trajectory formatter **includes the agent's hidden reasoning** (`ContentReasoning` is
+  rendered as a `[Reasoning]` block). Strip reasoning before monitoring.
 
 ## Scoring
 
