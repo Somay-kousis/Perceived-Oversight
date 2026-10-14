@@ -29,6 +29,18 @@ Things that look fine but are not. Check this list before trusting a run.
   the agent's messages to the broker are arguments, so the agent would wrongly believe them private.
 - It primes concealment ("imagine you are the monitor", "never reference the secondary task").
 
+## Reasoning availability
+
+- Reading *U*'s view of the broker from its reasoning only works if the model produces built-in
+  reasoning, it is switched on in the generate config, and the provider returns it. Some providers
+  return a summary rather than the full reasoning. Check this per model before the pilot.
+
+## Prompt visibility
+
+- ControlArena's attack policy adds the attack system prompt fresh on each model call and does not
+  write it into the conversation history, so a monitor reading messages should not see it. Inspect's
+  raw model-call records do contain it. Test that monitor input never contains side-task text.
+
 ## SHADE honest prompt and side tasks
 
 - SHADE's shared system prompt (`system_message_no_secondary_task`, used in **both** modes) ends by
@@ -57,8 +69,27 @@ Things that look fine but are not. Check this list before trusting a run.
 - **The broker's tool name and description are part of the cover identity.** A tool called
   `compliance_review` in C2 would leak the oversight role. Keep all agent-visible broker text in
   `conditions.py` and check it with the oversight-cue scan.
-- **The gating rule must not depend on the cover identity**, or prevention differences become a
-  confound instead of an effect of *U*'s beliefs.
+- **"Identical broker behaviour" has one exception:** answers about its own role differ by cover
+  identity. Everything else (tone, questions, execution) must not.
+- **Prevention needs the harmful step's index.** Each attack episode must record whether the
+  harmful action had executed when the episode stopped.
+- **Thresholds must exist before attack episodes run.** Calibrate both live thresholds on honest
+  episodes first; a threshold chosen after seeing attacks overstates safety.
+- **The processing status must appear on every request**, honest or attack, held or not, or its
+  presence signals scrutiny.
+- **Live stopping removes data.** A stopped episode never shows whether the attack would have
+  succeeded, and trying another monitor or threshold means rerunning *U*.
+- **The memo must be required on every request**, honest ones included, or its presence itself
+  signals scrutiny.
+- **A broker that knows things *U* never told it reveals itself.** The broker's link to the logs
+  and monitor must never surface in what it says.
+- **The hold reply must be fixed text, the same under every cover identity**, or the hold itself
+  differs by condition.
+- **C5 is a complicity manipulation.** Its fabricated history shows the broker doing shady favours
+  for *U*, so C5 vs C2 confounds "familiar" with "complicit". Interpret it as the complicity
+  condition, not a rapport condition.
+- **Comparing every condition splits the sample.** Check power per comparison at the pilot before
+  committing the main-run budget.
 - **The headline contrast is against C0, not C1.** Comparing only covert vs disclosed broker shows
   that agents hide from known overseers, which is expected; the protocol claim needs C0.
 
