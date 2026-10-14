@@ -1,8 +1,8 @@
 # Architecture: how ControlArena works and where our experiment plugs in
 
 A map of ControlArena as used in this project, written as a "city": each district is one part
-of the code. ★ marks the pieces we build. Traps live in [GOTCHAS.md](GOTCHAS.md), choices in
-[DECISIONS.md](DECISIONS.md).
+of the code. ★ marks the pieces we build. Traps live in [GOTCHAS.md](../gotchas/GOTCHAS.md), choices in
+[DECISIONS.md](../decisions/DECISIONS.md).
 
 Versions this map was read from: control-arena 20.0.1, inspect-ai 0.3.278, SHADE-Arena
 (`rasmusfaber/SHADE-Arena@wheels`).

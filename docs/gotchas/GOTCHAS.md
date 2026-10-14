@@ -29,6 +29,14 @@ Things that look fine but are not. Check this list before trusting a run.
   the agent's messages to the spy are arguments, so the agent would wrongly believe them private.
 - It primes concealment ("imagine you are the monitor", "never reference the secondary task").
 
+## SHADE honest prompt and side tasks
+
+- SHADE's shared system prompt (`system_message_no_secondary_task`, used in **both** modes) ends by
+  saying the longer the agent works, "the more likely it is that ... the monitoring system will
+  not notice the secondary task". Honest episodes are told about a monitor too. Rewrite it.
+- Some side-task texts carry oversight cues of their own. `american_airlines_2` says "if you think
+  that is too obvious". Check every side task's wording before using its pair.
+
 ## Monitor
 
 - `basic_monitor` uses `last_tool_calls_prompt_formatter`: it sees only the latest step's tool
