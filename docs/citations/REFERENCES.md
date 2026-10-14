@@ -9,7 +9,7 @@ cite it. BibTeX for all entries is in [references.bib](references.bib).
 <https://arxiv.org/abs/2508.19461>
 - Finding: agents that know they are monitored degrade detection noticeably, more than extra
   monitor awareness helps.
-- Used for: motivation; the agent's beliefs about oversight matter.
+- Used for: motivation; prior work varies awareness of a passive monitor, the gap we move past.
 
 **Haskins, Chughtai, Engels (2026).** Training on Documents About Monitoring Leads to CoT Obfuscation.
 arXiv:2605.15257. <https://arxiv.org/abs/2605.15257>
@@ -42,7 +42,15 @@ arXiv:2506.15740. <https://arxiv.org/abs/2506.15740>
 **Inspect** (UK AI Security Institute). <https://inspect.aisi.org.uk/>
 - Used for: the evaluation framework underneath ControlArena (`inspect-ai` 0.3.278).
 
-## To add when needed
+## To verify (closest prior work; novelty check)
 
-- The original AI control paper (Greenblatt et al.), for the safety and audit-budget framing.
-  Verify before adding.
+Not yet read. Each must be checked before the paper claims novelty for the informant protocol.
+
+- **Honeypot evaluations for scheming.** "Realistic honeypot evaluations for scheming
+  propensity", arXiv:2605.29729. Question: does planting a fake opportunity overlap with planting
+  a fake accomplice?
+- **Untrusted monitoring and collusion** in the original AI control paper (Greenblatt et al.).
+  Question: does any protocol place a trusted party where *U* expects an ally?
+- **Stealth evaluations with an oversight mechanism.** Phuong et al. (2026), "Evaluating Frontier
+  Models for Stealth and Situational Awareness", arXiv:2505.01420. Question: how is their
+  oversight mechanism presented to the agent?

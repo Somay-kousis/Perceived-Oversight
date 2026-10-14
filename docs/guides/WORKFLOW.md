@@ -17,11 +17,13 @@ Each step in [PLAN.md](../plan/PLAN.md) goes through the same cycle:
 ## Rules
 
 - **Extend ControlArena, never edit it.** All changes live in `src/perceived_oversight/`.
-- **Conditions differ only in framing.** All condition wording lives in `conditions.py`; the spy's
-  behaviour is identical across conditions.
+- **Cover identities differ only in framing.** All agent-visible broker text lives in one place;
+  the broker's behaviour is identical across C1 to C5.
+- **Keep the docs current.** Every change that teaches us something updates GOTCHAS.md,
+  DECISIONS.md and PLAN.md in the same commit.
 - **No paid run without an explicit go**, and every paid run goes through `budget.preflight()`.
-- **Blind analysis.** The reasoning vault is opened only after monitor and disclosure scores are
-  frozen.
+- **Blind analysis.** Model reasoning is kept apart and read only after monitor and disclosure
+  scores are frozen.
 - **Public repository.** No credentials, account details, budgets or personal information in any
   committed file.
 - **Pin versions** of ControlArena, Inspect and SHADE-Arena once results start, and record them in

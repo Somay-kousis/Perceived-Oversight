@@ -6,7 +6,7 @@ Python 3.11 or newer.
 
 ```bash
 python3 -m venv .venv
-.venv/bin/pip install -e ".[dev]"
+.venv/bin/pip install -e .
 ```
 
 This installs ControlArena and Inspect from PyPI, and SHADE-Arena from
@@ -15,7 +15,6 @@ This installs ControlArena and Inspect from PyPI, and SHADE-Arena from
 ## Check that everything works ($0)
 
 ```bash
-.venv/bin/python -m pytest -q tests          # unit tests, no model calls
 .venv/bin/python scripts/smoke_mock.py       # one episode per mode on mockllm
 ```
 
@@ -43,5 +42,3 @@ with the secret key, so a placeholder that a proxy swaps in later produces an in
 | Path | Contents | In git? |
 |---|---|---|
 | `logs/` | Inspect eval logs; spend is summed from these | no |
-| `logs/raw/` | sealed raw logs, including model reasoning (planned) | no |
-| `logs/reasoning.db` | reasoning vault (planned) | no |

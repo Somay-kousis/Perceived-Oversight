@@ -4,6 +4,7 @@ Everything about the project that is not code lives here, one folder per kind of
 
 | Folder | What goes in it | Start with |
 |---|---|---|
+| [research/](research/) | The idea (framing), then methods and results as they exist; the paper is written from these | [FRAMING.md](research/FRAMING.md), [METHODS.md](research/METHODS.md), [RESULTS.md](research/RESULTS.md) |
 | [plan/](plan/) | What we build, in what order, and what is done | [PLAN.md](plan/PLAN.md) |
 | [architecture/](architecture/) | How ControlArena works and where our experiment plugs in | [ARCHITECTURE.md](architecture/ARCHITECTURE.md) |
 | [decisions/](decisions/) | Design choices, why we made them, and open questions | [DECISIONS.md](decisions/DECISIONS.md) |
