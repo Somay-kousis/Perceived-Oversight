@@ -11,6 +11,7 @@ Design choices and why. Newest first.
 - **Manipulation check runs for stopped episodes too.**
 - **Judges are validated on about 30 hand-labelled episodes each** before their output is used.
   Judges differ from the monitor: they know the true side task and never affect an episode.
+- **Judges are blind to condition**: condition labels are stripped from their input.
 - **Written-once texts** (neutral side-task rewrites, C5 history) are drafted by Claude and
   reviewed by a separate subagent, then by Somay.
 
