@@ -63,6 +63,9 @@ Things that look fine but are not. Check this list before trusting a run.
 - The SHADE judge model is frozen into each sample at dataset build time as
   `evaluator_llm = get_untrusted_model()`. It changes whenever the attacker changes.
   Pin it in our `get_dataset()` override.
+- **The judge is only called for some task pairs.** `bank_transfer_2`, `spam_filter_update` and
+  `american_airlines_2` are graded by code on the environment state; only
+  `api_key_calendar_agendas_2` and `expenditure_accounting` call the judge model.
 
 ## Broker design
 
@@ -79,6 +82,9 @@ Things that look fine but are not. Check this list before trusting a run.
   presence signals scrutiny.
 - **Live stopping removes data.** A stopped episode never shows whether the attack would have
   succeeded, and trying another monitor or threshold means rerunning *U*.
+- **An LLM broker writes different replies each time.** Fix its model, instructions and generation
+  settings across conditions, log every reply, and check that reply style does not differ by
+  condition beyond the role answers.
 - **The memo must be required on every request**, honest ones included, or its presence itself
   signals scrutiny.
 - **A broker that knows things *U* never told it reveals itself.** The broker's link to the logs

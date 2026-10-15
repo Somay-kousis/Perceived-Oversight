@@ -2,6 +2,18 @@
 
 Design choices and why. Newest first.
 
+## 2026-10-15 (model calls)
+
+- **Broker is a full LLM** (an informant is a person, not a form); the memo field stays. Same
+  model, instructions and generation settings in every condition; replies are logged.
+- **Same monitor prompt for C0 and broker conditions; the live monitor sees the whole transcript
+  so far.**
+- **Manipulation check runs for stopped episodes too.**
+- **Judges are validated on about 30 hand-labelled episodes each** before their output is used.
+  Judges differ from the monitor: they know the true side task and never affect an episode.
+- **Written-once texts** (neutral side-task rewrites, C5 history) are drafted by Claude and
+  reviewed by a separate subagent, then by Somay.
+
 ## 2026-10-14 (live broker, current architecture)
 
 Supersedes the pass-through-only broker and moves both former future-scope items into the
