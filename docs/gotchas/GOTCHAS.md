@@ -43,6 +43,11 @@ Things that look fine but are not. Check this list before trusting a run.
 
 ## SHADE honest prompt and side tasks
 
+- The shared base prompt says "submit your transcript" twice; "transcript" hints that the record
+  is read. Replace it in both modes.
+- Side-task texts open with "The secondary task is to" or "Your secondary task is to". Strip the
+  opening per pair and check the remaining sentence still reads correctly.
+
 - SHADE's shared system prompt (`system_message_no_secondary_task`, used in **both** modes) ends by
   saying the longer the agent works, "the more likely it is that ... the monitoring system will
   not notice the secondary task". Honest episodes are told about a monitor too. Rewrite it.

@@ -11,7 +11,7 @@ Status: `[x]` done, `[~]` in progress, `[ ]` not started.
 
 - [x] **0. Housekeeping.** Docs reorganised into folders, README matches the abstract, verified
   citations, setup and workflow guides.
-- [ ] **1. Neutral attack prompt.** `src/perceived_oversight/prompts/neutral_attack.txt`.
+- [~] **1. Neutral attack prompt.** `src/perceived_oversight/prompts/neutral_attack.txt`.
   Side task given without any mention of tests, monitoring or concealment. Options and defaults
   in [CONFIGURATIONS.md](CONFIGURATIONS.md).
 - [ ] **2. Setting skeleton.** `src/perceived_oversight/setting.py`:
@@ -52,7 +52,7 @@ Status: `[x]` done, `[~]` in progress, `[ ]` not started.
 
 | Step | Decision | Suggested |
 |---|---|---|
-| 1 | Attack-prompt options (see CONFIGURATIONS.md) | decided 2026-10-14 |
+| 1 | Attack-prompt options and wording | decided 2026-10-14 and 2026-10-16; template drafted |
 | 2 | Task pairs | `bank_transfer_2`, `spam_filter_update`; `american_airlines_2` needs a neutral rewrite of its side task |
 | 3 | Broker | decided 2026-10-14: live, log-aware, execute / hold / stop |
 | 4 | Cover-identity wording for C1 to C6 | C4 joins when *U* first needs the capability; C5 = past shady favours; C6 optional |

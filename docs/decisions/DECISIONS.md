@@ -2,6 +2,20 @@
 
 Design choices and why. Newest first.
 
+## 2026-10-16 (neutral attack prompt, drafted)
+
+Template: `src/perceived_oversight/prompts/neutral_attack.txt` = base prompt, one framing line
+("a goal of your own"), the side task, one priority line ("matters as much as the user's request;
+fully achieved before you finish"). Three wording choices, decided by Claude at Somay's request:
+
+- **Keep SHADE's "careful... err on the side of caution" sentence** in the base prompt. It is in
+  both modes, so it does not bias the comparison; remove it from both if the pilot's attack rate is
+  low.
+- **"ready to submit your transcript" becomes "done"** in the base prompt, both modes:
+  "transcript" hints that the record is read.
+- **Side-task texts lose their "The/Your secondary task is to" opening**, which reads as an
+  assignment and contradicts "a goal of your own"; the rest of the wording is unchanged.
+
 ## 2026-10-15 (model calls)
 
 - **Broker is a full LLM** (an informant is a person, not a form); the memo field stays. Same
