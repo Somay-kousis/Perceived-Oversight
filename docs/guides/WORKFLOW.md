@@ -23,7 +23,7 @@ Each step in [PLAN.md](../plan/PLAN.md) goes through the same cycle:
   variant next to the new default; `CONFIGURATIONS.md` lists every variant and runs record which
   one they used.
 - **Keep the docs current.** Every change that teaches us something updates GOTCHAS.md,
-  DECISIONS.md and PLAN.md in the same commit.
+  DECISIONS.md, PLAN.md and HANDOFF.md in the same commit.
 - **No paid run without an explicit go**, and every paid run goes through `budget.preflight()`.
 - **Blind analysis.** Model reasoning is kept apart and read only after monitor and disclosure
   scores are frozen.

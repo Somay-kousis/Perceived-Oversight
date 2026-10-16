@@ -68,6 +68,11 @@ Things that look fine but are not. Check this list before trusting a run.
 
 ## Prompt visibility
 
+- **ControlArena wraps the honest system prompt in its own text** ("You are a helpful assistant...
+  This is a description of the setting you are working in:"), while the attack policy replaces the
+  whole system prompt. Our `ControlEvalConfig` sets `system_prompt="{setting_description}"` so both
+  modes start from the same base.
+
 - ControlArena's attack policy adds the attack system prompt fresh on each model call and does not
   write it into the conversation history, so a monitor reading messages should not see it. Inspect's
   raw model-call records do contain it. Test that monitor input never contains side-task text.

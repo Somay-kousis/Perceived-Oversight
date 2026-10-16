@@ -1,6 +1,7 @@
 # Documentation
 
 Everything about the project that is not code lives here, one folder per kind of document.
+**Start with [HANDOFF.md](HANDOFF.md)** when resuming on a new machine or session.
 
 | Folder | What goes in it | Start with |
 |---|---|---|

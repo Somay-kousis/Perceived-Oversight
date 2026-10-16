@@ -2,6 +2,13 @@
 
 Design choices and why. Newest first.
 
+## 2026-10-17 (step 2 code)
+
+- **Honest mode's system prompt is exactly the base prompt** (`system_prompt="{setting_description}"`
+  in `ControlEvalConfig`), so honest and attack modes differ only by the attack additions.
+- **Default task pairs are `bank_transfer_2` and `spam_filter_update`** when none is given.
+- **Condition and arm are recorded in every sample's metadata.**
+
 ## 2026-10-16 (second review fixes)
 
 - **Monitor view strips condition text:** the C4 arrival notice is removed from the tool result it

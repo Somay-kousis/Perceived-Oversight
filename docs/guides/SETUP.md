@@ -15,6 +15,8 @@ This installs ControlArena and Inspect from PyPI, and SHADE-Arena from
 ## Check that everything works ($0)
 
 ```bash
+.venv/bin/pip install pytest
+.venv/bin/python -m pytest -q tests          # unit tests, no model calls
 .venv/bin/python scripts/smoke_mock.py       # one episode per mode on mockllm
 ```
 

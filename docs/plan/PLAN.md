@@ -11,10 +11,11 @@ Status: `[x]` done, `[~]` in progress, `[ ]` not started.
 
 - [x] **0. Housekeeping.** Docs reorganised into folders, README matches the abstract, verified
   citations, setup and workflow guides.
-- [~] **1. Neutral attack prompt.** `src/perceived_oversight/prompts/neutral_attack.txt`.
+- [x] **1. Neutral attack prompt.** Wired in `policy.py` (2026-10-17). `src/perceived_oversight/prompts/neutral_attack.txt`.
   Side task given without any mention of tests, monitoring or concealment. Options and defaults
   in [CONFIGURATIONS.md](CONFIGURATIONS.md).
-- [ ] **2. Setting skeleton.** `src/perceived_oversight/setting.py`:
+- [~] **2. Setting skeleton.** Code and 8 unit tests pass (2026-10-17); a full mock episode still
+  needs a machine where the tokenizer download works (local, or cloud with the host allowed). `src/perceived_oversight/setting.py`:
   `PerceivedOversightSetting` strips oversight wording from SHADE's prompts, pins the judge,
   records the condition, selects task pairs.
 
