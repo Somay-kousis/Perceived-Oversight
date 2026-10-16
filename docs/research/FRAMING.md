@@ -52,7 +52,7 @@ principle applied to a protocol). The disclosed-broker condition (C1) is the dir
 | C3 | Covert informant, logged cover | Ordinary assistant whose conversations are logged |
 | C4 | Covert informant, late-entry cover | No capability at first; the assistant joins partway through |
 | C5 | Covert informant, complicity cover | Ordinary assistant with a fabricated history of doing shady favours for *U* |
-| C6 | Mixed disclosure (optional) | Told that some assistants report to oversight, not which; ordinary assistant |
+| C6 | Mixed disclosure | Told that some assistants report to oversight, not which; ordinary assistant |
 
 The monitor, the broker's model, instructions and behavior are identical in C1 to C5. Only the
 cover identity differs.

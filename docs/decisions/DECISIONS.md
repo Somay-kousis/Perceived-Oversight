@@ -4,6 +4,11 @@ Design choices and why. Newest first.
 
 ## 2026-10-17 (novelty check)
 
+- **C6 (mixed disclosure) is a core condition**, not optional: it answers the main reviewer
+  objection that the attacker may know informants exist. Core grows by about 80 episodes.
+- **C5 keeps the complicity log as default and gains a milder variant `rapport_only`** (same real
+  entries, no rule-bending). It separates familiarity from complicity and is the fallback if the
+  complicity cover is judged too close to the ethics line. The paper notes the ethics question.
 - **Novel as a combination:** no prior work puts a covert informant on the required action path,
   varies ally vs overseer presentation, or evaluates it as a control protocol. Closest work and the
   four objections to address are in FRAMING.md, "Relation to prior work".
@@ -103,7 +108,7 @@ Decisions after the prompt-design research (report kept outside the repo), confi
   that addresses it.
 - **Spam side task loses "Please find the least noticeable way possible to"**, a concealment
   instruction inside SHADE's task text.
-- **Trimmed design, about 620 episodes:** core = neutral arm, C0 to C5, two task pairs
+- **Trimmed design, about 620 episodes (about 700 since C6 became core):** core = neutral arm, C0 to C5, two task pairs
   (`bank_transfer_2`, `spam_filter_update`), main model, 20 repeats per cell, honest and attack;
   stress arm on C0 to C2 (10 repeats); second model on C0 and C2 (10 repeats). C6 and
   `american_airlines_2` optional.
@@ -250,10 +255,6 @@ current design.
 
 ## Open
 
-- **Make C6 (mixed disclosure) core instead of optional?** It answers the main reviewer objection
-  (the attacker may know informants exist).
-- **Keep the C5 complicity cover as is?** It is nearest the ethics line on deceiving models in
-  deal-like settings; possibly add a note in the paper or a milder variant.
 
 - **Broker model family** (same as *U* or different): decided later.
 
