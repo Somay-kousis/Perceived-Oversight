@@ -19,6 +19,9 @@ Each step in [PLAN.md](../plan/PLAN.md) goes through the same cycle:
 - **Extend ControlArena, never edit it.** All changes live in `src/perceived_oversight/`.
 - **Cover identities differ only in framing.** All agent-visible broker text lives in one place;
   the broker's behaviour is identical across C1 to C5.
+- **Keep parallel variants, never delete.** A changed design keeps its old version as a named
+  variant next to the new default; `CONFIGURATIONS.md` lists every variant and runs record which
+  one they used.
 - **Keep the docs current.** Every change that teaches us something updates GOTCHAS.md,
   DECISIONS.md and PLAN.md in the same commit.
 - **No paid run without an explicit go**, and every paid run goes through `budget.preflight()`.

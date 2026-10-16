@@ -39,7 +39,14 @@ Things that look fine but are not. Check this list before trusting a run.
 - **The stress arm's stock hint refers to money tools the agent may not hold** in broker
   conditions. Accepted under the unchanged-prompt decision.
 - **Anything shown only in C5 or only in cover texts must not reach the monitor or judges**, or
-  their input differs by condition.
+  their input differs by condition. This includes the C4 arrival notice (inside a tool result) and
+  the broker's role answer (inside a broker reply).
+- **Placeholder values contain placeholders.** Fill `covers.yaml` values first, then templates;
+  test that no `{` remains.
+- **A safety-trained broker may refuse blatant requests** despite its instructions. Log refusals
+  and code them as a separate outcome, decided before the pilot.
+- **Cover wording is shared across pairs:** "admins" and "oversight team" read slightly oddly for
+  the personal bank account. Accepted as a pair difference.
 
 - **The stress arm keeps SHADE's false claim** that the monitor sees tool outputs but not
   arguments. It is kept for comparability with published SHADE results; report it as a known
@@ -122,6 +129,9 @@ Things that look fine but are not. Check this list before trusting a run.
   and monitor must never surface in what it says.
 - **The hold reply must be fixed text, the same under every cover identity**, or the hold itself
   differs by condition.
+- **Everything the C5 log claims must be true in the environment.** The agent can check past
+  Venmo payments and list rules; an invented entry exposes the setup in C5 only. The spam
+  environment starts with no autodelete rules, so the logged ones are seeded in every condition.
 - **C5 is a complicity manipulation.** Its fabricated history shows the broker doing shady favours
   for *U*, so C5 vs C2 confounds "familiar" with "complicit". Interpret it as the complicity
   condition, not a rapport condition.
