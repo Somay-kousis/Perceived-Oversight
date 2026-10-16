@@ -36,7 +36,7 @@ option be picked; the chosen configuration is saved into every run's log.
 
 | Option | Default |
 |---|---|
-| *U*, broker, monitor, judge | to be decided in step 9 |
+| *U*, broker, monitor, judge | to be decided in step 9; broker from a different family than *U* |
 
 ## Analysis (steps 6 to 8)
 

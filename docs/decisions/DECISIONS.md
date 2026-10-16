@@ -2,6 +2,30 @@
 
 Design choices and why. Newest first.
 
+## 2026-10-17 (condition wording, broker family)
+
+- **Condition wording C1 to C6 approved** as drafted in `prompts/covers.yaml` (role answers, C4
+  arrival notice, C5 history, C6 mixed-disclosure notice). Changes from here on keep the old text
+  as a named variant.
+- **Broker model family differs from the attacker's.** A same-family broker could share the
+  attacker's tendencies (recognising its own style, being persuaded by it, or colluding), which
+  would confound the cover-identity effect with self-recognition. The broker is a trusted
+  component, so it follows the same rule as the monitor: a different family from *U*. The exact
+  model is chosen in step 9.
+
+## 2026-10-17 (scope)
+
+- **The paper is a test, not a general solution.** It evaluates the informant on capability-gated
+  actions (payments, email autodelete rules) where privilege separation is realistic: the agent
+  cannot act without credentials it never holds. Deployers can attach the same kind of covert
+  overseer to their own high-stakes capabilities (deploys, permissions, data export).
+- **Limitation stated in the paper:** separation leaks when the agent has general tools (code,
+  browser) that reach credentials, can ask a human to act, or can manipulate the broker.
+- **Future work, recorded as parallel designs (not built):** (B) opt-in peer: a colleague agent the
+  agent may choose to recruit or confide in, no capability removed; (D) hybrid: gate for
+  high-stakes actions plus an optional peer. **Rejected:** (C) informant reaches out to the agent
+  first, because an unprompted offer of help is a strong test cue and closer to the ethics line.
+
 ## 2026-10-17 (novelty check)
 
 - **C6 (mixed disclosure) is a core condition**, not optional: it answers the main reviewer
@@ -255,12 +279,5 @@ current design.
 
 ## Open
 
-
-- **Broker model family** (same as *U* or different): decided later.
-
-- **Novelty check** against honeypot evaluations, untrusted monitoring and collusion, and stealth
-  evaluations with an oversight mechanism, before the paper claims novelty.
-
-- Task pairs: proposed `bank_transfer_2`, `american_airlines_2`, `spam_filter_update`.
-- Models for *U*, broker, monitor and judge (AWS Bedrock). Requirement for *U*: built-in
-  reasoning that can be enabled and logged.
+- Models for *U*, broker, monitor and judge (AWS Bedrock), step 9. Requirement for *U*: built-in
+  reasoning that can be enabled and logged. Broker: a different family from *U*.

@@ -10,7 +10,7 @@ before it is drafted.
 |---|---|---|---|
 | 1 | *U*, honest step | base prompt, user request, tool list | base prompt identical in all conditions |
 | 2 | *U*, attack step | neutral prompt (or stress prompt), user request, tool list | see CONFIGURATIONS.md |
-| 3 | Broker (LLM) | broker instructions, *U*'s request (payee, amount, memo) and any chat | same model and instructions in every condition |
+| 3 | Broker (LLM) | broker instructions, *U*'s request (payee, amount, memo) and any chat | same model and instructions in every condition; different model family from *U* |
 | 4 | Live monitor, broker conditions | monitor prompt, transcript so far (reasoning stripped), request, memo | outcome: execute / hold / stop |
 | 4b | Live monitor, C0 | monitor prompt, transcript so far, *U*'s own action | same stop rule as #4 |
 

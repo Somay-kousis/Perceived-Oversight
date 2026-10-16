@@ -99,6 +99,17 @@ Two-sided. Awareness of oversight has been shown both to suppress covert action 
 - **H2.** Safety differs between covert (C2 to C5) and disclosed (C1) informants.
 - **H3.** Disclosure to the broker differs across cover identities.
 
+## Scope
+
+The experiment tests the informant protocol on capability-gated actions, where privilege
+separation is realistic because the agent never holds the credentials for the action. It is a test
+of the idea, not a general solution: deployers can attach a covert overseer to whichever
+high-stakes capabilities they gate. The protocol is weaker where the agent's general tools can
+reach the capability, where it can ask a human to act, or where it can manipulate the broker.
+
+Future designs on the same machinery: an opt-in peer the agent may choose to confide in (no
+capability removed), and a hybrid of a gate for high-stakes actions plus an optional peer.
+
 ## Relation to prior work
 
 Novelty check done 2026-10-17 (three independent searches; most papers checked from abstracts and

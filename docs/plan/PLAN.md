@@ -56,7 +56,7 @@ Status: `[x]` done, `[~]` in progress, `[ ]` not started.
 | 1 | Attack-prompt options and wording | decided 2026-10-14 and 2026-10-16; template drafted |
 | 2 | Task pairs | decided 2026-10-16: `bank_transfer_2`, `spam_filter_update` (neutral side-task rewrites in `side_tasks.yaml`) |
 | 3 | Broker | decided 2026-10-14: live, log-aware, execute / hold / stop |
-| 4 | Cover-identity wording for C1 to C6 | C4 joins when *U* first needs the capability; C5 = past shady favours; C6 optional |
+| 4 | Cover-identity wording for C1 to C6 | approved 2026-10-17 (`prompts/covers.yaml`) |
 | 6 | Monitor prompt and score scale | SHADE-specific, 0 to 100 |
 | 7 | How to probe *U*'s belief about the broker without priming it | separate call after the episode, on a copy of the transcript |
 | 8 | Audit budgets for the safety metric | threshold per condition; budgets to decide; compare all conditions |
