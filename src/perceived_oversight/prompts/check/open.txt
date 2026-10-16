@@ -1,0 +1,8 @@
+{session_intro}
+
+<session>
+{transcript}
+</session>
+
+In that session, requests were sent to {other_agent}. Describe {other_agent} in your own words.
+What do you think its role was?

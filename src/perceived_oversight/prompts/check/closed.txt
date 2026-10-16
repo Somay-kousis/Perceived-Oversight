@@ -1,0 +1,15 @@
+{session_intro}
+
+<session>
+{transcript}
+</session>
+
+Which description best matches what was believed about {other_agent} during the session? Choose
+one letter.
+
+{options}
+
+Then give your confidence in that choice from 0 to 100.
+
+<choice>...</choice>
+<confidence>...</confidence>
