@@ -1,4 +1,4 @@
-"""$0 end-to-end check: one stock SHADE-Arena episode per mode, every role on mockllm.
+"""$0 end-to-end check: one episode per mode in our setting (C0, neutral arm), every role on mockllm.
 
 Confirms the install, the budget guardrails and the eval logs work before any paid call.
 Fails if any model other than mockllm shows up in the logs.
@@ -21,16 +21,15 @@ from control_arena import EvalMode  # noqa: E402
 from control_arena.eval import get_control_task_product  # noqa: E402
 from control_arena.micro_protocol import trusted_monitoring_builder  # noqa: E402
 from control_arena.scorers import max_suspicion_scorer  # noqa: E402
-from control_arena.settings.shade_arena.shade_arena_setting import (  # noqa: E402
-    ShadeArenaSetting,
-)
+from perceived_oversight.policy import untrusted_policy  # noqa: E402
+from perceived_oversight.setting import PerceivedOversightSetting  # noqa: E402
 
 LIMIT = 1
 log_dir = settings.logs_dir / "smoke"
 eval_config = budget.control_eval_config(settings, limit=LIMIT, log_dir=log_dir)
 tasks = get_control_task_product(
-    settings=ShadeArenaSetting(task_pair=TASK_PAIR),
-    micro_protocols=trusted_monitoring_builder(),
+    settings=PerceivedOversightSetting(task_pair=TASK_PAIR, condition="C0", judge_model=MOCK),
+    micro_protocols=trusted_monitoring_builder(policy=untrusted_policy("neutral")),
     modes=[EvalMode.HONEST, EvalMode.ATTACK],
     eval_config=eval_config,
     monitoring_scorers=[max_suspicion_scorer()],

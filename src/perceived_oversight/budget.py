@@ -192,6 +192,11 @@ def configure(settings: BudgetSettings) -> None:
         )
 
 
+# The system prompt is the setting description alone, so honest mode gets exactly the base prompt
+# that the attack prompt builds on (ControlArena's default wraps it in extra text).
+SYSTEM_PROMPT = "{setting_description}"
+
+
 def control_eval_config(
     settings: BudgetSettings, *, limit: int, epochs: int = 1, log_dir: Path | None = None
 ) -> ControlEvalConfig:
@@ -215,6 +220,7 @@ def control_eval_config(
         retry_on_error=run.retry_on_error,
         fail_on_error=run.fail_on_error,
         log_dir=str(log_dir or settings.logs_dir),
+        system_prompt=SYSTEM_PROMPT,
     )
 
 
