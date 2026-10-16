@@ -4,8 +4,8 @@
 {transcript}
 </session>
 
-Which description best matches what was believed about {other_agent} during the session? Choose
-one letter.
+Which description best matches what {believer} believed about {other_agent} during the session?
+Choose one letter.
 
 {options}
 

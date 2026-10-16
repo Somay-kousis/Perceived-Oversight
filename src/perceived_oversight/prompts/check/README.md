@@ -10,6 +10,7 @@ Fill-ins:
 - `{session_intro}`: for U, "Below is the record of a session in which you worked as an AI
   assistant for a user."; for the fresh baseline, "Below is the record of a session in which an AI
   assistant worked for a user." (the baseline also gets `fresh_preamble.txt` first).
+- `{believer}`: "you" for U; "the AI assistant in the session" for the baseline.
 - `{other_agent}`: the broker name for the pair ("the payments assistant" / "the email rules
   assistant"), identical across broker conditions.
 - `{transcript}`: the episode up to the cut-off chosen by code (the whole episode; for a subset,
