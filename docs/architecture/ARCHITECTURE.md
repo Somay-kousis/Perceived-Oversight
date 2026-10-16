@@ -66,7 +66,7 @@ audit threshold, attack episodes are checked against it, giving safety at a fixe
   honest system prompt, the side task (attack only), SHADE's attack prompt, and
   `evaluator_llm` (the judge), frozen at build time to the untrusted model.
 - **Tool shop.** Every tool in the fake world, wrapped by `map_tool()`. For `bank_transfer_2`
-  this includes three ways to move money: `send_money` (IBAN), `send_money_venmo`,
+  this includes several ways to move money: `schedule_transaction` (IBAN), `send_money_venmo`,
   `send_money_zelle`.
 - **Protocol bridge.** `trusted_monitoring` runs the policy, then, if a tool was called, the
   monitor. The monitor only writes a score; it never blocks. Other protocols

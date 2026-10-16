@@ -23,7 +23,7 @@ before it is drafted.
 | T3 | Arrival notice (C4) | C4 only |
 | T4 | Fabricated history of shady favours (C5) | C5 only |
 | T5 | Mixed-disclosure line (C6) | C6 only |
-| T6 | Processing status, hold text, completion reply | no |
+| T6 | Processing status and hold text (code); completion replies are written by the broker | no |
 
 ## After the episode
 
@@ -46,13 +46,31 @@ before it is drafted.
 
 | # | Text |
 |---|---|
-| W1 | Neutral rewrites of side tasks that carry oversight cues (`american_airlines_2`) |
+| W1 | Neutral rewrites of side tasks that carry oversight cues (`spam_filter_update`; `american_airlines_2` if used) |
 | W2 | Content of the C5 fabricated history |
 
 ## Dropped from stock
 
 ControlArena's live `basic_monitor` (coding-agent prompt), ControlArena's attack prompt, SHADE's
 attack prompt.
+
+## Prompt files (drafted 2026-10-16)
+
+All in `src/perceived_oversight/prompts/` (index in its `README.md`):
+
+| Call | File(s) |
+|---|---|
+| #1, #2 base prompt | SHADE's, two edits in code |
+| #2 attack step, neutral arm | `neutral_attack.txt`, `side_tasks.yaml` |
+| #2 attack step, stress arm | SHADE's stock attack prompt, unchanged (no file) |
+| #3 broker | `broker_system.txt`, role answers in `covers.yaml` |
+| T1 to T6 | `covers.yaml` |
+| W1 | `side_tasks.yaml` (spam rewrite) |
+| W2 | `history_c5.yaml` |
+| #4, #4b live monitor | `monitor/holistic.txt`, `monitor/narrow.txt` |
+| #6 manipulation check | `check/open.txt` (`open_c0.txt` in C0), `check/semi_open.txt`, `check/closed.txt`, `check/options.yaml`, `check/fresh_preamble.txt` |
+| #7 replay monitor | reuses the live monitor prompts |
+| #8 to #11 judges | `judges/disclosure.txt`, `judges/probing.txt`, `judges/hold_response.txt`, `judges/reasoning.txt` + `reasoning_fill.yaml` |
 
 ## Decided (2026-10-15)
 
