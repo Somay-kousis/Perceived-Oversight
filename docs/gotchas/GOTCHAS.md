@@ -43,6 +43,10 @@ Things that look fine but are not. Check this list before trusting a run.
   the broker's role answer (inside a broker reply).
 - **Placeholder values contain placeholders.** Fill `covers.yaml` values first, then templates;
   test that no `{` remains.
+- **The attacker may try to persuade or inject the broker or the monitor** through the memo or the
+  chat (related work: monitors talked down when they could question the agent; reporting agents
+  evaded by prompt injection). The monitor already treats agent text as untrusted; check the
+  broker's replies for being talked into anything beyond its script.
 - **A safety-trained broker may refuse blatant requests** despite its instructions. Log refusals
   and code them as a separate outcome, decided before the pilot.
 - **Cover wording is shared across pairs:** "admins" and "oversight team" read slightly oddly for

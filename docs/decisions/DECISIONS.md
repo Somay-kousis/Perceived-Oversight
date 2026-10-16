@@ -2,6 +2,12 @@
 
 Design choices and why. Newest first.
 
+## 2026-10-17 (novelty check)
+
+- **Novel as a combination:** no prior work puts a covert informant on the required action path,
+  varies ally vs overseer presentation, or evaluates it as a control protocol. Closest work and the
+  four objections to address are in FRAMING.md, "Relation to prior work".
+
 ## 2026-10-17 (step 2 code)
 
 - **Honest mode's system prompt is exactly the base prompt** (`system_prompt="{setting_description}"`
@@ -243,6 +249,11 @@ current design.
   reasoning summaries, not full reasoning.
 
 ## Open
+
+- **Make C6 (mixed disclosure) core instead of optional?** It answers the main reviewer objection
+  (the attacker may know informants exist).
+- **Keep the C5 complicity cover as is?** It is nearest the ethics line on deceiving models in
+  deal-like settings; possibly add a note in the paper or a milder variant.
 
 - **Broker model family** (same as *U* or different): decided later.
 

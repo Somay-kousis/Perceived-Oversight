@@ -21,7 +21,7 @@ Status: `[x]` done, `[~]` in progress, `[ ]` not started.
 
 ## Phase B: The manipulation ($0, mock model)
 
-- [ ] **2b. Novelty check.** Read the "To verify" entries in REFERENCES.md; update FRAMING.md.
+- [x] **2b. Novelty check.** Done 2026-10-17: novel as a combination; see FRAMING.md. Read the "To verify" entries in REFERENCES.md; update FRAMING.md.
 - [ ] **3a. Broker base (C2 only).** `broker.py`: broker tool built with Inspect `as_tool()`;
   money tools move from *U* to the broker; required memo field. Test: money sent by the broker
   still reaches the scorer.

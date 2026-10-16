@@ -101,12 +101,31 @@ Two-sided. Awareness of oversight has been shown both to suppress covert action 
 
 ## Relation to prior work
 
-Novelty is **not yet verified** against the closest neighbours. Working distinction: a honeypot
-fakes the *opportunity* to attack; a covert informant fakes the *accomplice*, a trusted party
-inside a real attack path that elicits disclosure in situ. To check before the paper (see
-[REFERENCES.md](../citations/REFERENCES.md), "To verify"): honeypot evaluations for scheming,
-untrusted monitoring and collusion in the original AI control work, and stealth evaluations with
-an oversight mechanism.
+Novelty check done 2026-10-17 (three independent searches; most papers checked from abstracts and
+search excerpts, not full text). No published work places a covert informant on the untrusted
+agent's required action path, varies whether that agent is presented as an ally or an overseer, or
+evaluates such a design as a control protocol at a fixed audit budget. The contribution is novel
+as a combination; it builds on the following.
+
+| Line of work | Closest example | Difference from ours |
+|---|---|---|
+| Capability behind another agent | Factor(U,T); multi-agent shutdown sabotage (capability-denied agent recruits a capable peer); deferring critical actions in SHADE control evaluations | Executors or peers are neutral, undisguised, unmonitored or non-conversational |
+| Defender posing as an accomplice | Honeypots with fake collusion signals for *untrusted monitors* (Greenblatt et al.; later Redwood work) | Mirror image: they fake the attacker to test the monitor; we fake the accomplice to test the attacker |
+| Fake-ally decoys | IAPS honeypot report proposes a staged "let's collude" message from another agent | One static message, never tested; ours is a live broker on a required path, evaluated |
+| Manipulating perceived oversight | "Honeypot Protocol" (system-prompt claims about monitoring) | Prompt only, no planted agent, null result on a handful of runs |
+| Disclosure to another agent | Insider-trading reports to a manager; GDM stealth tasks' manager chat; offering a model a deal | The recipient is openly an overseer: our disclosed arm (C1) only |
+| Opportunity honeypots | Realistic honeypot evaluations for scheming propensity | Plant opportunities, measure propensity; no counterpart agent |
+| Framing of a peer | Peer-preservation (shared history and cooperativeness change behaviour) | Measures protecting the peer, not confiding in it |
+
+Objections the paper must address:
+- **The attacker may know informants exist** (control evaluations usually assume the attacker knows
+  the protocol). Answered directly by C6.
+- **The attacker may see through the cover.** Hinting at deception sharply raises honeypot
+  detection in related work; measure test-awareness per cover.
+- **The attacker may persuade or inject the broker or the monitor** through the memo or chat
+  (seen in related work when monitors could be questioned, and when users evaded reporting agents).
+- **Ethics of deceiving the model:** Redwood's "Being honest with AIs" argues that lying in
+  deal-like settings costs credibility; the complicity cover (C5) is nearest that line.
 
 ## Glossary
 

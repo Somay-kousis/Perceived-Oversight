@@ -42,15 +42,28 @@ arXiv:2506.15740. <https://arxiv.org/abs/2506.15740>
 **Inspect** (UK AI Security Institute). <https://inspect.aisi.org.uk/>
 - Used for: the evaluation framework underneath ControlArena (`inspect-ai` 0.3.278).
 
-## To verify (closest prior work; novelty check)
+## Closest prior work (novelty check, 2026-10-17)
 
-Not yet read. Each must be checked before the paper claims novelty for the informant protocol.
+Checked from abstracts, search excerpts and code repositories; full texts were not reachable from
+the cloud environment. Read the starred ones in full before submission.
 
-- **Honeypot evaluations for scheming.** "Realistic honeypot evaluations for scheming
-  propensity", arXiv:2605.29729. Question: does planting a fake opportunity overlap with planting
-  a fake accomplice?
-- **Untrusted monitoring and collusion** in the original AI control paper (Greenblatt et al.).
-  Question: does any protocol place a trusted party where *U* expects an ally?
-- **Stealth evaluations with an oversight mechanism.** Phuong et al. (2026), "Evaluating Frontier
-  Models for Stealth and Situational Awareness", arXiv:2505.01420. Question: how is their
-  oversight mechanism presented to the agent?
+- ★ **Krakovna, Lindner, Ho, Farquhar, Shah (2026).** Realistic honeypot evaluations for scheming
+  propensity. arXiv:2605.29729. Plants opportunities; no counterpart agent.
+- ★ **Phuong, Zimmermann, et al. (2025).** Evaluating Frontier Models for Stealth and Situational
+  Awareness. arXiv:2505.01420. Oversight disclosed or passive; one task has an openly reviewing
+  manager.
+- ★ **Greenblatt et al. (2023).** AI Control: Improving Safety Despite Intentional Subversion.
+  arXiv:2312.06942. Honeypots with fake collusion signals test the untrusted *monitor*.
+- ★ Shutdown sabotage propensities in multi-agent systems. arXiv:2609.28274 (authors not
+  confirmed). Capability-denied agent recruits a neutral peer; closest structure.
+- ★ Kutasov et al. (2025). Control evaluations in SHADE-Arena, including deferring critical actions.
+  arXiv:2511.02997.
+- Factor(U,T) control protocol. arXiv:2512.14745 (authors not confirmed).
+- Hasan (2026). Honeypot Protocol. arXiv:2604.13301 (Apart hackathon).
+- Wehner and Kraprayoon. Honeypots for AI agent insider threats (IAPS report; year not confirmed).
+- Potter et al. (2026). Peer-preservation. arXiv:2604.19784.
+- Scheurer, Balesni, Hobbhahn (2023). arXiv:2311.07590.
+- Finnveden (2025). Being honest with AIs (Redwood Research blog).
+- Debenedetti et al. (2025). CaMeL. arXiv:2503.18813.
+
+Full notes: kept outside the repository (research_notes/Novelty check).

@@ -56,12 +56,13 @@ Full reasoning, dated, in [decisions/DECISIONS.md](decisions/DECISIONS.md). Opti
 1. Approve the condition wording (C1 to C6), or go through it one by one.
 2. Broker model family (same as the attacker or different).
 3. Models for every role (step 9).
+4. Make C6 core? Keep the C5 complicity cover as is? (novelty check)
 
 ## Next (free, $0)
 
 1. Verify step 2 with a full mock episode (local).
-2. Step 2b: novelty check (read the three "To verify" papers in
-   [citations/REFERENCES.md](citations/REFERENCES.md)).
+2. Before submission: read the starred papers in [citations/REFERENCES.md](citations/REFERENCES.md)
+   in full (the novelty check used abstracts).
 3. Steps 3 to 8 on the mock model.
 
 ## Resuming locally
