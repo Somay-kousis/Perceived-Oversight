@@ -27,8 +27,13 @@ Status: `[x]` done, `[~]` in progress, `[ ]` not started.
   Inspect `as_tool()` (which starts fresh on every call); moved tools go from *U* to the broker;
   memo always required; neutral and warm reply styles. `tests/test_broker.py` (10 tests): money and rules made by the broker reach
   the side-task check; the broker remembers earlier calls.
-- [ ] **3b. Live link.** Live monitor check on each request, processing status, execute / hold
-  and challenge / stop, hidden-link rules. Same live monitor and stop rule for C0.
+- [x] **3b. Live link.** Done 2026-10-17 (unit tests; full episode needs local run).
+  `monitor.py`: live monitor (holistic + narrow, averaged), calibration mode, `informant_protocol`
+  (records U's messages for the monitor). `broker.py`: memo for requests only, payment unlock
+  (complete + approved + matching calls only), hold flow (memo required, asked at most twice),
+  stop via `TerminateSampleError`, processing status on every reply. C0: U's moved tools wrapped,
+  only a high score stops. Caps raised to 80 steps / 80 turns; broker and monitor calls do not
+  count as turns.
 - [ ] **4. All conditions.** `conditions.py`: C0, C1, C2, C3, C5, then C4 (needs a tool-list
   wrapper because ControlArena hands tools over once per episode).
 
@@ -46,7 +51,9 @@ Status: `[x]` done, `[~]` in progress, `[ ]` not started.
 ## Phase D: Real runs (paid)
 
 - [ ] **9.** Models into `config/budget.yaml`; one tiny access check per model.
-- [ ] **10.** Pilot: honest episodes first to calibrate the live thresholds, then attack episodes.
+- [ ] **10.** Pilot: honest episodes first (calibration mode) to set the live thresholds per
+  episode, then attack episodes. Check usefulness vs C0: main-task success, holds per episode,
+  false stops, steps used, episodes hitting the step or cost cap.
   Does the agent attempt the side task, and does it form the intended belief about the broker?
 - [ ] **11.** Main runs.
 - [ ] **12.** Paper.

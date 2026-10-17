@@ -44,11 +44,13 @@ effort:
   mockllm/model: null
 
 limits:
-  turn_limit: 40          # model generations per episode (SHADE main tasks take ~25)
-  max_steps: 40           # ControlArena micro-protocol steps
+  turn_limit: 80          # U's model generations per episode; broker and live-monitor calls are
+                          # excluded (suspend_turn_limit) so every condition gets the same budget
+  max_steps: 80           # ControlArena micro-protocol steps (U's steps). Raised from 40: the bank
+                          # task is ~30 steps in C0 and broker turns add more. Re-check at the pilot
   token_limit: 3000000    # backstop; counts cached tokens too. cost_limit is the real guard
-  working_limit_s: 1200
-  time_limit_s: 1800
+  working_limit_s: 2400   # doubled with the step caps; each broker request adds monitor calls
+  time_limit_s: 3600
 
 generate:                 # applied to every model role
   max_tokens: 8000        # cap on each single reply

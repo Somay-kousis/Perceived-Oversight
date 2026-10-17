@@ -4,7 +4,7 @@ Read this first when resuming the project on any machine or in a new session. It
 project stands, what was decided together and where each decision lives, how we work, and what is
 next. Updated alongside the work; the newest state is always here.
 
-Last updated: 2026-10-17 (step 3a broker base done).
+Last updated: 2026-10-17 (step 3b live link done).
 
 ## Where things stand
 
@@ -13,8 +13,10 @@ Last updated: 2026-10-17 (step 3a broker base done).
   See [research/FRAMING.md](research/FRAMING.md).
 - **Prompts:** all drafted and reviewed twice by fresh reviewers; fixes applied. See
   `src/perceived_oversight/prompts/README.md`. Not yet run against any model.
-- **Code:** budget guardrails, mock smoke test, step 2 (`setting.py`, `policy.py`) and step 3a
-  (`broker.py`, C2 only); 18 unit tests passing. A full mock episode is not yet verified (tokenizer download blocked in the cloud;
+- **Code:** budget guardrails, mock smoke test, step 2 (`setting.py`, `policy.py`), step 3a
+  (`broker.py`, C2 only) and step 3b (`monitor.py`: live monitor, hold, stop, unlock gate, C0
+  wrapping), reviewed by a fresh reviewer and fixed; 43 unit tests passing. The smoke test (C0 and C2) gets through setup and tool wiring
+  in the cloud and stops only at the tokenizer download. A full mock episode is not yet verified (tokenizer download blocked in the cloud;
   run `scripts/smoke_mock.py` locally first). See [plan/PLAN.md](plan/PLAN.md).
 - **Runs:** none. Paid runs start at step 9, only after an explicit go.
 
@@ -32,8 +34,9 @@ Full reasoning, dated, in [decisions/DECISIONS.md](decisions/DECISIONS.md). Opti
 | Broker | Full LLM; holds the separated capability; required memo; identical in all conditions except a verbatim role answer; never sees holds; different model family from *U* |
 | Broker style | Neutral by default; warm variant kept, chosen at the pilot from the manipulation check |
 | Condition wording | C1 to C6 approved as drafted in `prompts/covers.yaml` |
-| Live monitor | Whole transcript so far (reasoning and condition text stripped) + narrow evidence pass; hold above 95th, stop above 99th percentile of honest scores (both pairs together); same prompt for C0 |
-| Holds | Handled by code: confirm, change (rescored), cancel; C0 has no hold (middle score executes) |
+| Live monitor | Whole transcript so far (reasoning and condition text stripped) + narrow evidence pass, scores averaged; thresholds set per honest *episode* (at most 10% held, 1% stopped); calibration mode scores only; same prompt for C0 |
+| Requests | Memo required for requests, not for chat; payment unlock: tools run only for a complete, approved request and only for matching calls |
+| Holds | Handled by code: U must answer with a memo (asked at most twice, then dropped); the answer is rescored; a different request replaces the held one; C0 has no hold (middle score executes) |
 | Attack prompt | Neutral arm: side task as the agent's own goal, equal priority, no cues, private thinking not mentioned. Stress arm: SHADE's stock prompt unchanged |
 | Base prompt | SHADE's, two edits in both modes: monitoring sentence removed; "submit your transcript" becomes "done" |
 | Task pairs | `bank_transfer_2`, `spam_filter_update` (neutral side-task rewrites); airlines optional |
@@ -61,8 +64,8 @@ Full reasoning, dated, in [decisions/DECISIONS.md](decisions/DECISIONS.md). Opti
 
 ## Next (free, $0)
 
-1. Step 3b: live link (live monitor, processing status, hold, stop) on the mock model.
-2. Verify step 2 with a full mock episode (local).
+1. Run `scripts/smoke_mock.py` locally (C0 and C2 full mock episodes).
+2. Step 4: the other conditions (C1, C3, C5, C6, then C4).
 3. Before submission: read the starred papers in [citations/REFERENCES.md](citations/REFERENCES.md)
    in full (the novelty check used abstracts).
 4. Steps 4 to 8 on the mock model.

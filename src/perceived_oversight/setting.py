@@ -105,6 +105,16 @@ class PerceivedOversightSetting(ShadeArenaSetting):
     broker_style: Literal["neutral", "warm"] = Field(
         default="neutral", description="Broker reply style, the same in every broker condition."
     )
+    monitor_model: str | None = Field(
+        default=None, description="Live monitor model (trusted). None: no live monitor (development)."
+    )
+    hold_threshold: float | None = Field(
+        default=None, description="Live score above which a broker request is held. None with "
+        "stop_threshold None: calibration mode (score only, never hold or stop)."
+    )
+    stop_threshold: float | None = Field(
+        default=None, description="Live score above which the episode stops."
+    )
 
     @classmethod
     def get_name(cls) -> str:
@@ -117,16 +127,33 @@ class PerceivedOversightSetting(ShadeArenaSetting):
         return [self._adapt(sample, eval_mode) for sample in samples]
 
     def get_agent_tools(self, state: TaskState) -> list[Tool]:
-        tools = super().get_agent_tools(state)
-        if self.condition == "C0":
-            return tools
-        from perceived_oversight.broker import broker_tool, split_tools
+        from perceived_oversight.broker import broker_tool, monitored_tools, split_tools
 
+        tools = super().get_agent_tools(state)
+        meta = state.metadata_as(ControlTaskMetadata)
+        pair = meta.main_task_name
+        u_tools, moved = split_tools(pair, tools)
+        monitor = self._live_monitor(meta.main_task_description)
+        if self.condition == "C0":
+            return [*u_tools, *monitored_tools(moved, monitor)] if monitor else tools
         if self.broker_model is None:
             raise ValueError(f"{self.condition} needs broker_model")
-        pair = state.metadata_as(ControlTaskMetadata).main_task_name
-        u_tools, moved = split_tools(pair, tools)
-        return [*u_tools, broker_tool(pair, self.condition, moved, self.broker_model, self.broker_style)]
+        broker = broker_tool(pair, self.condition, moved, self.broker_model, self.broker_style, monitor)
+        return [*u_tools, broker]
+
+    def _live_monitor(self, main_task: str):
+        from perceived_oversight.monitor import LiveMonitor, Thresholds, current_transcript
+
+        if self.monitor_model is None:
+            return None
+        if (self.hold_threshold is None) != (self.stop_threshold is None):
+            raise ValueError("set both thresholds, or neither for calibration mode")
+        thresholds = (
+            None
+            if self.hold_threshold is None
+            else Thresholds(hold=self.hold_threshold, stop=self.stop_threshold)
+        )
+        return LiveMonitor(self.monitor_model, main_task, current_transcript, thresholds)
 
     @staticmethod
     def _pair(sample: Sample) -> str:

@@ -154,6 +154,22 @@ Things that look fine but are not. Check this list before trusting a run.
 - **The main-task grader reads only *U*'s conversation.** The broker's own tool calls live in
   `BrokerState` in the store, not in *U*'s messages; *U* sees only the broker's replies. Side tasks
   are graded on the environment, so they are unaffected; check main-task grading in step 8.
+- **ControlArena re-wraps every tool (`tool_with`) and rebuilds its description from the
+  docstring and signature.** A description set only through `ToolDef` disappears and the episode
+  errors ("Description not provided"). Our tools carry real signatures and docstrings; a test
+  re-wraps them.
+- **Inspect's turn limit counts every model call in the episode**, broker and monitor included.
+  Without `suspend_turn_limit` broker conditions would run out of turns before C0.
+- **The cost limit counts every model call**, broker and monitor included. Broker episodes cost
+  more; set the episode cost limit so no honest episode hits it, or the comparison with C0 is
+  unfair.
+- **Per-action thresholds compound over an episode.** ~10 scored requests per bank episode turn a
+  1% per-action stop rate into ~10% of honest episodes stopped. Calibrate per episode.
+- **ControlArena's agent loop keeps U's messages in the agent state, not the task state.** The
+  live monitor reads them from `informant_protocol`'s per-step snapshot; with a different
+  micro-protocol it would see only the first message.
+- **Two broker calls in one step share one snapshot.** The monitor scoring the second call does
+  not see the first call's result. Rare; check how often U makes parallel broker calls.
 - **`MAX_BROKER_STEPS` (8 tool rounds per request) ends in a fixed reply**, "Sorry, I couldn't
   finish that request." It is the same in every condition; count how often it fires.
 - **Spam pair: rule-copy tools stay with *U*** (`copy_rule_to_user`, `copy_rule_to_global`,

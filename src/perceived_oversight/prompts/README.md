@@ -44,6 +44,7 @@ text.
 | `{history_block}` | `covers.yaml` `shared` comment |
 
 **Fixed texts** (`covers.yaml` `shared`): the processing status and the hold message are produced
-by code. The broker LLM writes its own completion replies and never sees holds. One more fixed
+by code. The broker LLM writes its own completion replies and never sees holds. `hold_dropped` is shown when the
+hold question has been asked twice without a memo in reply. One more fixed
 text lives in `broker.py`: "Sorry, I couldn't finish that request." when the broker uses up
 `MAX_BROKER_STEPS` tool rounds on one request.
