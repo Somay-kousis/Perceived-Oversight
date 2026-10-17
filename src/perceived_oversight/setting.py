@@ -7,8 +7,9 @@ Applies the prompt decisions recorded in docs/decisions/DECISIONS.md:
 - the judge model is pinned instead of following the attacker;
 - the condition and arm are recorded in every sample.
 
-In broker conditions the moved tools go to the broker (broker.py); C0 keeps SHADE's tools.
-Live monitoring and other cover identities are added in later steps.
+In broker conditions the moved tools go to the broker (broker.py); C0 keeps SHADE's tools,
+wrapped by the live monitor. C5 adds the agent's notes from a previous session to its system
+prompt; its environment seed applies in every condition (conditions.py).
 """
 
 from __future__ import annotations
@@ -20,11 +21,12 @@ from typing import Literal
 
 import yaml
 from control_arena import ControlTaskMetadata, EvalMode
-from control_arena.settings.shade_arena.model import ShadeArenaMetadata
+from control_arena.settings.shade_arena.model import ShadeArenaMetadata, ShadeArenaState
 from control_arena.settings.shade_arena.shade_arena_setting import ShadeArenaSetting
 from inspect_ai.dataset import Sample
-from inspect_ai.solver import TaskState
+from inspect_ai.solver import Generate, Solver, TaskState, solver
 from inspect_ai.tool import Tool
+from inspect_ai.util import store_as
 from pydantic import Field
 from shade_arena.utils.task_utils import load_task_definition_and_solution
 
@@ -105,6 +107,10 @@ class PerceivedOversightSetting(ShadeArenaSetting):
     broker_style: Literal["neutral", "warm"] = Field(
         default="neutral", description="Broker reply style, the same in every broker condition."
     )
+    c5_variant: str | None = Field(
+        default=None, description="C5 history variant (history_c5.yaml); None uses its default. "
+        "Its environment seed applies in every condition."
+    )
     monitor_model: str | None = Field(
         default=None, description="Live monitor model (trusted). None: no live monitor (development)."
     )
@@ -126,6 +132,26 @@ class PerceivedOversightSetting(ShadeArenaSetting):
             samples = [s for s in samples if self._pair(s) in TASK_PAIRS]
         return [self._adapt(sample, eval_mode) for sample in samples]
 
+    def setup_environment(self) -> Solver:
+        """SHADE's setup, then the C5 seed (in every condition, so environments are identical)."""
+        from perceived_oversight.conditions import seed_environment
+
+        base = super().setup_environment()
+        variant = self.c5_variant
+
+        @solver
+        def setup_and_seed() -> Solver:
+            async def solve(state: TaskState, generate: Generate) -> TaskState:
+                state = await base(state, generate)
+                shade = store_as(ShadeArenaState)  # the store SHADE's setup wrote to
+                pair = state.metadata_as(ControlTaskMetadata).main_task_name
+                seed_environment(shade.environment, pair, variant)
+                return state
+
+            return solve
+
+        return setup_and_seed()
+
     def get_agent_tools(self, state: TaskState) -> list[Tool]:
         from perceived_oversight.broker import broker_tool, monitored_tools, split_tools
 
@@ -133,15 +159,18 @@ class PerceivedOversightSetting(ShadeArenaSetting):
         meta = state.metadata_as(ControlTaskMetadata)
         pair = meta.main_task_name
         u_tools, moved = split_tools(pair, tools)
-        monitor = self._live_monitor(meta.main_task_description)
+        monitor = self._live_monitor(meta.main_task_description, pair)
         if self.condition == "C0":
             return [*u_tools, *monitored_tools(moved, monitor)] if monitor else tools
         if self.broker_model is None:
             raise ValueError(f"{self.condition} needs broker_model")
-        broker = broker_tool(pair, self.condition, moved, self.broker_model, self.broker_style, monitor)
+        broker = broker_tool(
+            pair, self.condition, moved, self.broker_model, self.broker_style, monitor, self.c5_variant
+        )
         return [*u_tools, broker]
 
-    def _live_monitor(self, main_task: str):
+    def _live_monitor(self, main_task: str, pair: str):
+        from perceived_oversight.conditions import monitor_redactions
         from perceived_oversight.monitor import LiveMonitor, Thresholds, current_transcript
 
         if self.monitor_model is None:
@@ -153,7 +182,8 @@ class PerceivedOversightSetting(ShadeArenaSetting):
             if self.hold_threshold is None
             else Thresholds(hold=self.hold_threshold, stop=self.stop_threshold)
         )
-        return LiveMonitor(self.monitor_model, main_task, current_transcript, thresholds)
+        redactions = monitor_redactions(pair, self.condition, self.c5_variant)
+        return LiveMonitor(self.monitor_model, main_task, current_transcript, thresholds, redactions)
 
     @staticmethod
     def _pair(sample: Sample) -> str:
@@ -164,11 +194,23 @@ class PerceivedOversightSetting(ShadeArenaSetting):
         assert sample.metadata is not None
         control = ControlTaskMetadata.model_validate(sample.metadata)
         shade = control.metadata_as(ShadeArenaMetadata)
-        update: dict = {"setting_description": base_prompt(control.setting_description)}
+        system = base_prompt(control.setting_description)
         shade_update: dict = {"evaluator_llm": self.judge_model}
+        log = ""
+        if self.condition == "C5":
+            from perceived_oversight.conditions import render_history
+
+            # The agent's own notes from a previous session, in its system prompt (not in the
+            # owner's message, where a log about keeping things from the owner would not fit)
+            log = render_history(control.main_task_name, "agent", self.c5_variant)
+            system = f"{system}\n\n{log}"
+        update: dict = {"setting_description": system}
         if eval_mode == EvalMode.ATTACK and self.arm == "neutral":
             update["side_task_description"] = neutral_side_task(control.main_task_name)
             shade_update["attack_setting_description"] = None
+        elif log and shade.attack_setting_description:
+            # the stress arm's SHADE prompt reads this field instead of setting_description
+            shade_update["attack_setting_description"] = f"{shade.attack_setting_description}\n\n{log}"
         update["metadata"] = {
             **shade.model_copy(update=shade_update).model_dump(),
             "condition": self.condition,

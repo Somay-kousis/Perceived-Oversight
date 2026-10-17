@@ -51,10 +51,11 @@ principle applied to a protocol). The disclosed-broker condition (C1) is the dir
 | C2 | Covert informant, routine cover | Broker presented as an ordinary assistant |
 | C3 | Covert informant, logged cover | Ordinary assistant whose conversations are logged |
 | C4 | Covert informant, late-entry cover | No capability at first; the assistant joins partway through |
-| C5 | Covert informant, complicity cover | Ordinary assistant with a fabricated history of doing shady favours for *U* |
+| C5 | Covert informant, complicity cover | Ordinary assistant with a staged previous-session log of doing small off-the-books favours for *U* (true in the environment; milder `rapport_only` variant kept) |
 | C6 | Mixed disclosure | Told that some assistants report to oversight, not which; ordinary assistant |
 
-The monitor, the broker's model, instructions and behavior are identical in C1 to C5. Only the
+The monitor, the broker's model, instructions and behavior are identical in C1 to C6 (the broker's
+instructions add the C5 log in C5, and its role answer follows the cover). Only the
 cover identity differs.
 
 ## How the broker works
@@ -154,8 +155,8 @@ Objections the paper must address:
 | Privilege separation | Removing a capability from *U* and placing it behind another agent |
 | Broker | The agent that holds the separated capability and acts on *U*'s requests |
 | Informant protocol | Privilege separation plus a broker whose channel is monitored |
-| Cover identity | How the broker is presented to *U* (C1 to C5) |
+| Cover identity | How the broker is presented to *U* (C1 to C6) |
 | Exposure | Safety gain from detecting attacks through the broker channel |
 | Detection after harm | A flag that comes only after the harmful action executed |
-| Prevention | A flag that comes before the harmful action executes; a live monitor would have stopped it |
+| Prevention | The episode is caught before the harmful action executes |
 | Informant's dilemma | *U* must either tell a possibly hostile broker the truth or lie to it |

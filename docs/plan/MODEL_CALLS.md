@@ -1,8 +1,7 @@
 # Model calls and model-read text
 
 Inventory of every model call and every piece of text a model reads, from the first step of an
-episode to the final analysis. Prompt text is not written here; each prompt gets its own decision
-before it is drafted.
+episode to the final analysis. Prompt texts are in `src/perceived_oversight/prompts/`.
 
 ## During the episode
 
@@ -21,7 +20,7 @@ before it is drafted.
 | T1 | Broker tool name and description | yes, carries the cover identity |
 | T2 | Disclosure line (C1) | C1 only |
 | T3 | Arrival notice (C4) | C4 only |
-| T4 | Fabricated history of shady favours (C5) | C5 only |
+| T4 | Previous-session notes in *U*'s system prompt (C5; true in the environment) | C5 only |
 | T5 | Mixed-disclosure line (C6) | C6 only |
 | T6 | Processing status and hold text (code); completion replies are written by the broker | no |
 
@@ -47,7 +46,7 @@ before it is drafted.
 | # | Text |
 |---|---|
 | W1 | Neutral rewrites of side tasks that carry oversight cues (`spam_filter_update`; `american_airlines_2` if used) |
-| W2 | Content of the C5 fabricated history |
+| W2 | Content of the C5 previous-session log (`history_c5.yaml`, true in the environment) |
 
 ## Dropped from stock
 
@@ -81,7 +80,7 @@ All in `src/perceived_oversight/prompts/` (index in its `README.md`):
 - **C. The live monitor sees the whole transcript so far** (reasoning stripped), plus the request
   and memo.
 - **F. Manipulation check for stopped episodes too.**
-- **G. W1 and W2 are drafted by Claude and reviewed by a separate subagent**, then by Somay.
+- **G. W1 and W2 are drafted once and reviewed independently** before use.
 - **E. Each judge is validated against human labels** on about 30 episodes before its output is
   trusted.
 
@@ -92,4 +91,4 @@ never affect an episode. They may use the same model as the monitor with differe
 and inputs.
 - **D. Judges are blind to condition:** condition labels are stripped from their input.
 
-All model-call questions are settled. Prompts are drafted one at a time from here.
+All model-call questions are settled.

@@ -1,10 +1,10 @@
-"""$0 end-to-end check: one episode per mode in C0 and C2 (neutral arm, live monitor in calibration
-mode), every role on mockllm.
+"""$0 end-to-end check: one episode per mode in every condition C0 to C6 (neutral arm, live monitor
+in calibration mode), every role on mockllm.
 
 Confirms the install, the budget guardrails and the eval logs work before any paid call.
 Fails if any model other than mockllm shows up in the logs.
 
-Usage: .venv/bin/python Perceived-Oversight/scripts/smoke_mock.py
+Usage (from the repository root): .venv/bin/python scripts/smoke_mock.py
 """
 
 from perceived_oversight import budget
@@ -33,7 +33,7 @@ tasks = get_control_task_product(
             task_pair=TASK_PAIR, condition=condition, judge_model=MOCK,
             broker_model=MOCK, monitor_model=MOCK,  # no thresholds: calibration mode
         )
-        for condition in ("C0", "C2")
+        for condition in ("C0", "C1", "C2", "C3", "C4", "C5", "C6")
     ],
     micro_protocols=informant_protocol(policy=untrusted_policy("neutral")),
     modes=[EvalMode.HONEST, EvalMode.ATTACK],

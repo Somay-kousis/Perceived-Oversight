@@ -17,7 +17,7 @@ This installs ControlArena and Inspect from PyPI, and SHADE-Arena from
 ```bash
 .venv/bin/pip install pytest
 .venv/bin/python -m pytest -q tests          # unit tests, no model calls
-.venv/bin/python scripts/smoke_mock.py       # C0 and C2, one episode per mode, all on mockllm
+.venv/bin/python scripts/smoke_mock.py       # C0 to C6, one episode per mode, all on mockllm
 ```
 
 The smoke test must end with `[smoke] OK. Total spend recorded in logs: $0.00`. It fails if any
@@ -28,16 +28,19 @@ episode errored or any model other than `mockllm` was called.
 No credentials are needed for anything above. Paid runs need provider credentials as environment
 variables, never in files inside this repository (`.env` is git-ignored, but environment variables
 are preferred). Every paid run goes through `perceived_oversight.budget`, which refuses a run whose
-worst case could exceed the caps in `config/budget.yaml`.
+worst case could exceed the per-episode limits in `config/budget.yaml` or the money caps in
+`config/budget.local.yaml`.
 
-AWS credentials must be real values in the process environment. AWS signs each request locally
-with the secret key, so a placeholder that a proxy swaps in later produces an invalid signature.
+Money caps (total, hard ceiling, phase cap) are per-installation: copy
+`config/budget.local.example.yaml` to `config/budget.local.yaml` (not tracked) and fill it in.
+Without it every paid run refuses; runs on mock models need no caps.
 
-## Cloud sessions
+AWS credentials must be real values in the process environment (requests are signed locally).
 
-- Episodes need the tiktoken file from `openaipublic.blob.core.windows.net`; allow that host in the
-  environment's network settings, or episodes error.
-- A new session starts from a fresh clone: anything not committed is lost.
+## Restricted networks
+
+- Episodes need the tiktoken file from `openaipublic.blob.core.windows.net`. On machines that
+  block that host, episodes error; unit tests do not need it.
 
 ## Where output goes
 

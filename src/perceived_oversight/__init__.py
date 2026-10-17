@@ -1,1 +1,1 @@
-"""Perceived Oversight: does an agent conceal less from a disguised informant subagent than from an explicit monitor?"""
+"""Perceived Oversight: covert informants as an AI control protocol."""

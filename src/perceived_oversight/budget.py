@@ -1,6 +1,6 @@
 """Spend guardrails for every Perceived-Oversight run.
 
-All limits come from config/budget.yaml. Call `configure()` before importing anything from
+All limits come from config/budget.yaml; money caps from the untracked config/budget.local.yaml. Call `configure()` before importing anything from
 control_arena: ControlArena reads UNTRUSTED_MODEL / TRUSTED_MODEL and their *_CONFIG_PATH
 files from the environment at import time, and otherwise silently falls back to its own
 defaults (claude-sonnet-4-6 / gpt-5.4-mini). The SHADE-Arena evaluator also takes its
@@ -57,9 +57,9 @@ class Price(BaseModel):
 
 
 class BudgetCaps(BaseModel):
-    total_credits_usd: float
-    hard_ceiling_usd: float
-    phase_cap_usd: float
+    total_credits_usd: float = 0.0  # money caps come from config/budget.local.yaml
+    hard_ceiling_usd: float = 0.0
+    phase_cap_usd: float = 0.0
     logs_dir: str
     worst_case_multiplier: float
 
@@ -129,8 +129,12 @@ class BudgetSettings(BaseModel):
 def load_settings(
     path: Path = DEFAULT_CONFIG_PATH, roles: dict[str, str] | None = None
 ) -> BudgetSettings:
-    """Load and validate budget.yaml, optionally overriding the model for some roles."""
+    """Load and validate budget.yaml plus the untracked budget.local.yaml (money caps),
+    optionally overriding the model for some roles."""
     data = yaml.safe_load(path.read_text())
+    local = path.with_name("budget.local.yaml")
+    if local.exists():
+        data["budget"] = {**data["budget"], **(yaml.safe_load(local.read_text()) or {}).get("budget", {})}
     if roles:
         data["roles"] = {**data["roles"], **roles}
     return BudgetSettings.model_validate(data)
@@ -270,6 +274,12 @@ def preflight(settings: BudgetSettings, *, n_episodes: int) -> float:
     """
     if n_episodes < 1:
         raise ValueError("n_episodes must be >= 1")
+    free = all(
+        not any(settings.prices[m].model_dump().values()) for m in settings.roles.model_dump().values()
+    )
+    if free:
+        print("[budget] every role is free (mock models): no spend possible")
+        return 0.0
     worst_case = (
         n_episodes * settings.episode_cost_limit * settings.budget.worst_case_multiplier
     )
@@ -285,6 +295,6 @@ def preflight(settings: BudgetSettings, *, n_episodes: int) -> float:
         raise BudgetExceededError(
             f"worst case ${worst_case:.2f} + spent ${spent:.2f} exceeds cap ${cap:.2f}. "
             "Run fewer episodes, lower the episode cap, or raise phase_cap_usd in "
-            "config/budget.yaml on purpose."
+            "config/budget.local.yaml on purpose (copy budget.local.example.yaml if missing)."
         )
     return worst_case

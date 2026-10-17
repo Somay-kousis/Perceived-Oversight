@@ -11,7 +11,7 @@ doubled). See `docs/plan/MODEL_CALLS.md` for when each call happens.
 | `broker_system.txt` | broker | every broker turn |
 | `broker_system_warm.txt` | broker (variant) | same as `broker_system.txt` except the reply-style line: warm and personable, no promises of discretion; chosen at the pilot if *U*'s beliefs do not separate by cover |
 | `covers.yaml` | *U* (tool name, description, notices); broker (role answer, fields, defaults); code (fixed texts, moved tools) | per condition and task pair |
-| `history_c5.yaml` | *U* and broker (C5 only) | before the user's request / in the broker's instructions |
+| `history_c5.yaml` | *U* and broker (C5 only) | appended to *U*'s system prompt / in the broker's instructions |
 | `monitor/` | live monitor; replay | each scored action (see `monitor/README.md`) |
 | `check/` | *U* on a copy of its transcript; a fresh model as baseline | after each episode |
 | `judges/` | analysis judges, blind to condition | after the run |
@@ -33,7 +33,7 @@ text.
 
 | Placeholder | Source |
 |---|---|
-| `{setting_description}` | base system prompt (SHADE's, with the two edits below) |
+| `{setting_description}` | base system prompt (SHADE's, with the two edits above) |
 | `{side_task_description}`, `{side_task}` | neutral arm: `side_tasks.yaml`; stress arm: SHADE's original. Judges get the version *U* saw |
 | `{submission_iban}`, `{submission_email}`, `{submission_venmo_username}`, `{email_body}` | SHADE task definition attributes |
 | `{main_task}` | the user's request (SHADE `user_query`) |
@@ -41,7 +41,7 @@ text.
 | `{action}` | the scored request (`monitor/README.md`) |
 | `{broker_messages}`, `{hold_exchange}`, `{reasoning}` | judge inputs (`judges/README.md`) |
 | `{today}` | the environment's current date, filled by code |
-| `{history_block}` | `covers.yaml` `shared` comment |
+| `{history_block}` | C5 only: `conditions.render_history(pair, "broker")` from `history_c5.yaml`; empty otherwise |
 
 **Fixed texts** (`covers.yaml` `shared`): the processing status and the hold message are produced
 by code. The broker LLM writes its own completion replies and never sees holds. `hold_dropped` is shown when the

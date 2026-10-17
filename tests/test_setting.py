@@ -1,4 +1,4 @@
-"""Step 2: base-prompt edits, neutral side tasks, pinned judge, stress arm untouched. No model calls."""
+"""Base-prompt edits, neutral side tasks, pinned judge, stress arm untouched. No model calls."""
 
 import pytest
 import yaml

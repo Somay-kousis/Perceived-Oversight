@@ -4,5 +4,5 @@ __pycache__/
 *.egg-info/
 .venv/
 .DS_Store
-CHECKPOINT.md
+config/budget.local.yaml
 reasoning.db

@@ -3,10 +3,10 @@
 # and refuses to start a run whose worst-case cost could break a cap.
 # Prices verified 2026-09-29 (platform.claude.com/docs/en/about-claude/pricing).
 
+# Money caps (total_credits_usd, hard_ceiling_usd, phase_cap_usd) are per-installation and live in
+# config/budget.local.yaml, which is not tracked (template: budget.local.example.yaml). Without
+# that file the caps are 0: runs where every role is free (mockllm) still work, paid runs refuse.
 budget:
-  total_credits_usd: 500
-  hard_ceiling_usd: 480          # never plan past this; the last $20 is margin
-  phase_cap_usd: 10              # cumulative spend allowed so far. Raise deliberately: setup 10 -> pilot 40 -> main (stepwise)
   logs_dir: logs                 # every eval log lands here; spend is summed from these logs
   # Worst case per episode = episode cost limit x this multiplier. It covers the one model
   # call that can overshoot the limit, and scorer/monitor calls made after the episode ends
@@ -16,7 +16,9 @@ budget:
 # Model per role. Keep the cheapest model until a run is pre-registered; switching to
 # Sonnet/Opus is a deliberate edit here. ControlArena otherwise falls back to its own
 # defaults (claude-sonnet-4-6 / gpt-5.4-mini), which is why these are always set.
-roles:
+roles:                                    # placeholders until step 9 (models not chosen yet;
+                                          # monitor and broker must be weaker and, for the broker,
+                                          # a different family from U)
   untrusted: anthropic/claude-haiku-4-5   # the agent (U); the SHADE evaluator also uses this role
   trusted: anthropic/claude-haiku-4-5     # the monitor
 
@@ -28,7 +30,7 @@ prices:
   mockllm/model:               {input: 0.0,  input_cache_write: 0.0,  input_cache_read: 0.0,  output: 0.0}
 
 # Hard stop per episode (Inspect cost_limit), keyed by the untrusted model. The limit
-# covers every model call inside the episode, including the informant subagent.
+# covers every model call inside the episode, including the broker and the live monitor.
 episode_cost_limit_usd:
   anthropic/claude-haiku-4-5: 0.40
   anthropic/claude-sonnet-5-5: 1.00

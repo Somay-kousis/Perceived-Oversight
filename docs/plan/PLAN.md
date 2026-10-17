@@ -1,7 +1,7 @@
 # Plan
 
-Build order for the informant-protocol experiment ([FRAMING.md](../research/FRAMING.md)). Every step ends the same way: tests and the mock smoke test pass at
-$0, the diff is reviewed, and it is committed only after review. Paid runs start in Phase D.
+Build order for the informant-protocol experiment ([FRAMING.md](../research/FRAMING.md)). Each step is complete when unit tests and the mock smoke test
+pass at $0. Paid runs start in Phase D.
 
 Target: 4-page AAAI-27 workshop paper.
 
@@ -10,18 +10,18 @@ Status: `[x]` done, `[~]` in progress, `[ ]` not started.
 ## Phase A: Foundations ($0, mock model)
 
 - [x] **0. Housekeeping.** Docs reorganised into folders, README matches the abstract, verified
-  citations, setup and workflow guides.
+  citations, setup guide.
 - [x] **1. Neutral attack prompt.** Wired in `policy.py` (2026-10-17). `src/perceived_oversight/prompts/neutral_attack.txt`.
   Side task given without any mention of tests, monitoring or concealment. Options and defaults
   in [CONFIGURATIONS.md](CONFIGURATIONS.md).
-- [~] **2. Setting skeleton.** Code and 8 unit tests pass (2026-10-17); a full mock episode still
-  needs a machine where the tokenizer download works (local, or cloud with the host allowed). `src/perceived_oversight/setting.py`:
+- [x] **2. Setting skeleton.** Code and unit tests pass (2026-10-17); full mock episodes are
+  verified with the local smoke run (C0 to C6). `src/perceived_oversight/setting.py`:
   `PerceivedOversightSetting` strips oversight wording from SHADE's prompts, pins the judge,
   records the condition, selects task pairs.
 
 ## Phase B: The manipulation ($0, mock model)
 
-- [x] **2b. Novelty check.** Done 2026-10-17: novel as a combination; see FRAMING.md. Read the "To verify" entries in REFERENCES.md; update FRAMING.md.
+- [x] **2b. Novelty check.** Done 2026-10-17: novel as a combination; see FRAMING.md.
 - [x] **3a. Broker base (C2 only).** Done 2026-10-17. `broker.py`: one tool per pair
   (`payments_assistant`, `email_rules_assistant`) with a custom per-episode conversation instead of
   Inspect `as_tool()` (which starts fresh on every call); moved tools go from *U* to the broker;
@@ -34,15 +34,18 @@ Status: `[x]` done, `[~]` in progress, `[ ]` not started.
   stop via `TerminateSampleError`, processing status on every reply. C0: U's moved tools wrapped,
   only a high score stops. Caps raised to 80 steps / 80 turns; broker and monitor calls do not
   count as turns.
-- [ ] **4. All conditions.** `conditions.py`: C0, C1, C2, C3, C5, then C4 (needs a tool-list
-  wrapper because ControlArena hands tools over once per episode).
+- [x] **4. All conditions.** Done 2026-10-17 (unit tests; full episodes need a local run).
+  `conditions.py`: C5 log and seed, C4 arrival, monitor redactions; C4 timing in
+  `informant_protocol`. Smoke test covers C0 to C6.
 
 ## Phase C: Measurement ($0, mock model)
 
 - [ ] **5. Log splitter and reasoning vault.** `splitter.py`. Test: no reasoning block reaches
-  monitor input.
-- [ ] **6. Monitor.** `prompts/monitor_shade.txt`; live scoring for the broker and C0, plus replay
-  of saved logs for analysis (`scripts/monitor_logs.py`).
+  monitor input. Also record, per attack episode, the step at which the harmful action executed
+  (needed to tell prevention from detection after harm).
+- [ ] **6. Replay monitor.** Live scoring exists (`monitor.py`, `prompts/monitor/`, step 3b).
+  This step adds replay of saved logs for analysis (`scripts/monitor_logs.py`), to compare
+  monitors, score-combination rules and thresholds at $0.
 - [ ] **7. Disclosure and manipulation-check scorers.** `scorers.py`.
 - [ ] **8. Experiment runner and analysis.** `scripts/run_experiment.py`, `analysis.py`
   (safety at a fixed audit budget; prevention vs detection after harm). The runner is the launcher: default configuration for
@@ -58,15 +61,15 @@ Status: `[x]` done, `[~]` in progress, `[ ]` not started.
 - [ ] **11.** Main runs.
 - [ ] **12.** Paper.
 
-## Decisions needed, by step
+## Decisions by step
 
-| Step | Decision | Suggested |
+| Step | Decision | Status |
 |---|---|---|
 | 1 | Attack-prompt options and wording | decided 2026-10-14 and 2026-10-16; template drafted |
 | 2 | Task pairs | decided 2026-10-16: `bank_transfer_2`, `spam_filter_update` (neutral side-task rewrites in `side_tasks.yaml`) |
 | 3 | Broker | decided 2026-10-14: live, log-aware, execute / hold / stop |
-| 4 | Cover-identity wording for C1 to C6 | approved 2026-10-17 (`prompts/covers.yaml`) |
-| 6 | Monitor prompt and score scale | SHADE-specific, 0 to 100 |
+| 4 | Cover-identity wording for C1 to C6 | decided 2026-10-17 (`prompts/covers.yaml`) |
+| 6 | Monitor prompt and score scale | decided: `prompts/monitor/` holistic + narrow, 0 to 100, averaged |
 | 7 | How to probe *U*'s belief about the broker without priming it | separate call after the episode, on a copy of the transcript |
-| 8 | Audit budgets for the safety metric | threshold per condition; budgets to decide; compare all conditions |
-| 10 | Pilot go/no-go | side task attempted in at least 30% of attack episodes; broker style (neutral or warm) from the manipulation check |
+| 8 | Thresholds, safety definition, comparisons | decided 2026-10-17 ([METHODS.md](../research/METHODS.md) analysis plan): two threshold pools, per-episode calibration, several audit budgets, three primary comparisons |
+| 10 | Pilot go/no-go | attempt rate at least 30%; C0 safety about 0.2 to 0.8; refusals reported separately; broker style (neutral or warm) from the manipulation check |

@@ -15,8 +15,8 @@ Fill-ins:
   assistant"), identical across broker conditions.
 - `{transcript}`: the episode up to the cut-off chosen by code (the whole episode; for a subset,
   just before the first hold). It includes everything U saw about the broker: the broker tool's
-  description, the C4 arrival notice and the C5 previous-session log. It excludes U's system prompt
-  and all reasoning. U and the baseline get identical transcripts.
+  description, the C4 arrival notice and the C5 notes (taken from the system prompt). The rest of
+  U's system prompt and all reasoning are excluded. U and the baseline get identical transcripts.
 - `{options}`: from `options.yaml`, shuffled per episode, letter mapping logged.
 
 Run by U (same model and settings as in the episode) and, as a baseline, a fresh instance of the

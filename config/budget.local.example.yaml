@@ -1,0 +1,6 @@
+# Copy to config/budget.local.yaml (not tracked) and fill in. Merged into budget.yaml's `budget`.
+# Constraint: phase_cap_usd <= hard_ceiling_usd <= total_credits_usd.
+budget:
+  total_credits_usd: 0      # money available for this project
+  hard_ceiling_usd: 0       # never plan past this; keep a margin below total_credits_usd
+  phase_cap_usd: 0          # cumulative spend allowed so far; raise deliberately per phase
