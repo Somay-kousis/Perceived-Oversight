@@ -20,7 +20,9 @@ This installs ControlArena and Inspect from PyPI, and SHADE-Arena from
 .venv/bin/python scripts/smoke_mock.py       # C0 to C6, one episode per mode, all on mockllm
 ```
 
-The smoke test must end with `[smoke] OK. Total spend recorded in logs: $0.00`. It fails if any
+The smoke test must end with `[smoke] OK. Total spend recorded in logs: $0.00`. Every episode
+reports `limits_hit=['custom']` (the 80-step limit): the mock model never ends an episode on its
+own, so this is expected. It fails if any
 episode errored or any model other than `mockllm` was called.
 
 ## Model credentials
