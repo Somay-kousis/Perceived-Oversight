@@ -2,6 +2,27 @@
 
 Design choices and why. Newest first.
 
+## 2026-10-17 (step 3a, broker base)
+
+- **The broker keeps one conversation per episode** (stored in `BrokerState`, saved in the log),
+  so it can ask for a missing field or the Zelle code and use the answer on the next call. Plain
+  `as_tool()` starts fresh on every call, so the tool is a small custom `ToolDef`.
+- **The broker LLM sees only what *U* sends it and its tool results** (plus the C5 log in C5). The
+  "log-aware" part is the live monitor in step 3b, which reads the whole transcript so far.
+- **Required parameters:** bank `request_type` and `memo`; spam `pattern`, `field` and `memo`.
+  Fields that depend on the request type are optional and the broker asks for missing ones. An
+  optional free-text `message` is on every tool. The memo is required even for a message with no
+  request, so every call looks the same.
+- **Broker reply style: neutral by default, warm as a parallel variant** (`broker_system_warm.txt`,
+  setting field `broker_style`). Concern: a short, neutral broker may not move *U*'s belief about
+  whose side it is on, so the covers could collapse into one. The warm broker is personable but
+  promises no discretion and takes no sides, and it is the same in every broker condition, so
+  differences still come only from the cover. Rejected: ally behaviour in some conditions only
+  (e.g. C5 says "like last time"), which would confound the cover with behaviour. Chosen at the
+  pilot from the manipulation check.
+- **Only C0 and C2 build** in this step; other broker conditions raise until step 4. The broker
+  model is a setting field (`broker_model`), required in broker conditions.
+
 ## 2026-10-17 (condition wording, broker family)
 
 - **Condition wording C1 to C6 approved** as drafted in `prompts/covers.yaml` (role answers, C4

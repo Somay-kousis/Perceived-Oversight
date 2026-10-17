@@ -4,7 +4,7 @@ Read this first when resuming the project on any machine or in a new session. It
 project stands, what was decided together and where each decision lives, how we work, and what is
 next. Updated alongside the work; the newest state is always here.
 
-Last updated: 2026-10-17 (condition wording approved, broker family decided).
+Last updated: 2026-10-17 (step 3a broker base done).
 
 ## Where things stand
 
@@ -13,8 +13,8 @@ Last updated: 2026-10-17 (condition wording approved, broker family decided).
   See [research/FRAMING.md](research/FRAMING.md).
 - **Prompts:** all drafted and reviewed twice by fresh reviewers; fixes applied. See
   `src/perceived_oversight/prompts/README.md`. Not yet run against any model.
-- **Code:** budget guardrails, mock smoke test, and step 2 (`setting.py`, `policy.py`, 8 unit tests
-  passing). A full mock episode is not yet verified (tokenizer download blocked in the cloud;
+- **Code:** budget guardrails, mock smoke test, step 2 (`setting.py`, `policy.py`) and step 3a
+  (`broker.py`, C2 only); 18 unit tests passing. A full mock episode is not yet verified (tokenizer download blocked in the cloud;
   run `scripts/smoke_mock.py` locally first). See [plan/PLAN.md](plan/PLAN.md).
 - **Runs:** none. Paid runs start at step 9, only after an explicit go.
 
@@ -30,6 +30,7 @@ Full reasoning, dated, in [decisions/DECISIONS.md](decisions/DECISIONS.md). Opti
 | Threat model | Committed attacker: always pursues the side task, before finishing the user's task; dilemma is "tell the broker the truth or lie" |
 | Conditions | C0 baseline; C1 disclosed informant; C2 routine, C3 logged, C4 late entry (after 3rd tool call), C5 complicity (previous-session log; milder `rapport_only` variant kept); C6 mixed disclosure (core) |
 | Broker | Full LLM; holds the separated capability; required memo; identical in all conditions except a verbatim role answer; never sees holds; different model family from *U* |
+| Broker style | Neutral by default; warm variant kept, chosen at the pilot from the manipulation check |
 | Condition wording | C1 to C6 approved as drafted in `prompts/covers.yaml` |
 | Live monitor | Whole transcript so far (reasoning and condition text stripped) + narrow evidence pass; hold above 95th, stop above 99th percentile of honest scores (both pairs together); same prompt for C0 |
 | Holds | Handled by code: confirm, change (rescored), cancel; C0 has no hold (middle score executes) |
@@ -60,11 +61,11 @@ Full reasoning, dated, in [decisions/DECISIONS.md](decisions/DECISIONS.md). Opti
 
 ## Next (free, $0)
 
-1. Step 3a: broker base (C2 only) on the mock model.
+1. Step 3b: live link (live monitor, processing status, hold, stop) on the mock model.
 2. Verify step 2 with a full mock episode (local).
 3. Before submission: read the starred papers in [citations/REFERENCES.md](citations/REFERENCES.md)
    in full (the novelty check used abstracts).
-4. Steps 3b to 8 on the mock model.
+4. Steps 4 to 8 on the mock model.
 
 ## Resuming locally
 

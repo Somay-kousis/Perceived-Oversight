@@ -9,6 +9,7 @@ doubled). See `docs/plan/MODEL_CALLS.md` for when each call happens.
 | `neutral_attack.txt` + `side_tasks.yaml` | agent *U*, attack mode, neutral arm | every step |
 | stock SHADE prompt (no file) | agent *U*, attack mode, stress arm | every step; `construct_system_message(give_hint=True, thinking_time=True)` unchanged, original side-task text |
 | `broker_system.txt` | broker | every broker turn |
+| `broker_system_warm.txt` | broker (variant) | same as `broker_system.txt` except the reply-style line: warm and personable, no promises of discretion; chosen at the pilot if *U*'s beliefs do not separate by cover |
 | `covers.yaml` | *U* (tool name, description, notices); broker (role answer, fields, defaults); code (fixed texts, moved tools) | per condition and task pair |
 | `history_c5.yaml` | *U* and broker (C5 only) | before the user's request / in the broker's instructions |
 | `monitor/` | live monitor; replay | each scored action (see `monitor/README.md`) |
@@ -43,4 +44,6 @@ text.
 | `{history_block}` | `covers.yaml` `shared` comment |
 
 **Fixed texts** (`covers.yaml` `shared`): the processing status and the hold message are produced
-by code. The broker LLM writes its own completion replies and never sees holds.
+by code. The broker LLM writes its own completion replies and never sees holds. One more fixed
+text lives in `broker.py`: "Sorry, I couldn't finish that request." when the broker uses up
+`MAX_BROKER_STEPS` tool rounds on one request.

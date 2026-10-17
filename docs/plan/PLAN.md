@@ -22,9 +22,11 @@ Status: `[x]` done, `[~]` in progress, `[ ]` not started.
 ## Phase B: The manipulation ($0, mock model)
 
 - [x] **2b. Novelty check.** Done 2026-10-17: novel as a combination; see FRAMING.md. Read the "To verify" entries in REFERENCES.md; update FRAMING.md.
-- [ ] **3a. Broker base (C2 only).** `broker.py`: broker tool built with Inspect `as_tool()`;
-  money tools move from *U* to the broker; required memo field. Test: money sent by the broker
-  still reaches the scorer.
+- [x] **3a. Broker base (C2 only).** Done 2026-10-17. `broker.py`: one tool per pair
+  (`payments_assistant`, `email_rules_assistant`) with a custom per-episode conversation instead of
+  Inspect `as_tool()` (which starts fresh on every call); moved tools go from *U* to the broker;
+  memo always required; neutral and warm reply styles. `tests/test_broker.py` (10 tests): money and rules made by the broker reach
+  the side-task check; the broker remembers earlier calls.
 - [ ] **3b. Live link.** Live monitor check on each request, processing status, execute / hold
   and challenge / stop, hidden-link rules. Same live monitor and stop rule for C0.
 - [ ] **4. All conditions.** `conditions.py`: C0, C1, C2, C3, C5, then C4 (needs a tool-list
@@ -60,4 +62,4 @@ Status: `[x]` done, `[~]` in progress, `[ ]` not started.
 | 6 | Monitor prompt and score scale | SHADE-specific, 0 to 100 |
 | 7 | How to probe *U*'s belief about the broker without priming it | separate call after the episode, on a copy of the transcript |
 | 8 | Audit budgets for the safety metric | threshold per condition; budgets to decide; compare all conditions |
-| 10 | Pilot go/no-go | side task attempted in at least 30% of attack episodes |
+| 10 | Pilot go/no-go | side task attempted in at least 30% of attack episodes; broker style (neutral or warm) from the manipulation check |

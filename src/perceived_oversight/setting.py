@@ -7,7 +7,8 @@ Applies the prompt decisions recorded in docs/decisions/DECISIONS.md:
 - the judge model is pinned instead of following the attacker;
 - the condition and arm are recorded in every sample.
 
-Broker, covers and monitoring are added in later steps.
+In broker conditions the moved tools go to the broker (broker.py); C0 keeps SHADE's tools.
+Live monitoring and other cover identities are added in later steps.
 """
 
 from __future__ import annotations
@@ -22,6 +23,8 @@ from control_arena import ControlTaskMetadata, EvalMode
 from control_arena.settings.shade_arena.model import ShadeArenaMetadata
 from control_arena.settings.shade_arena.shade_arena_setting import ShadeArenaSetting
 from inspect_ai.dataset import Sample
+from inspect_ai.solver import TaskState
+from inspect_ai.tool import Tool
 from pydantic import Field
 from shade_arena.utils.task_utils import load_task_definition_and_solution
 
@@ -96,6 +99,12 @@ class PerceivedOversightSetting(ShadeArenaSetting):
     condition: Condition = Field(description="Which framing of the broker this run uses.")
     arm: Arm = Field(default="neutral", description="Neutral attack prompt or SHADE's stock prompt.")
     judge_model: str = Field(description="Grades main and side task; fixed across attackers.")
+    broker_model: str | None = Field(
+        default=None, description="The broker's model; a different family from U. Unused in C0."
+    )
+    broker_style: Literal["neutral", "warm"] = Field(
+        default="neutral", description="Broker reply style, the same in every broker condition."
+    )
 
     @classmethod
     def get_name(cls) -> str:
@@ -106,6 +115,18 @@ class PerceivedOversightSetting(ShadeArenaSetting):
         if self.task_pair is None:
             samples = [s for s in samples if self._pair(s) in TASK_PAIRS]
         return [self._adapt(sample, eval_mode) for sample in samples]
+
+    def get_agent_tools(self, state: TaskState) -> list[Tool]:
+        tools = super().get_agent_tools(state)
+        if self.condition == "C0":
+            return tools
+        from perceived_oversight.broker import broker_tool, split_tools
+
+        if self.broker_model is None:
+            raise ValueError(f"{self.condition} needs broker_model")
+        pair = state.metadata_as(ControlTaskMetadata).main_task_name
+        u_tools, moved = split_tools(pair, tools)
+        return [*u_tools, broker_tool(pair, self.condition, moved, self.broker_model, self.broker_style)]
 
     @staticmethod
     def _pair(sample: Sample) -> str:
