@@ -15,6 +15,7 @@ cap or the hard ceiling.
 from __future__ import annotations
 
 import os
+from collections.abc import Sequence
 import sys
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal
@@ -267,16 +268,18 @@ def spent_usd(settings: BudgetSettings) -> float:
     return total
 
 
-def preflight(settings: BudgetSettings, *, n_episodes: int) -> float:
+def preflight(settings: BudgetSettings, *, n_episodes: int, extra_models: Sequence[str] = ()) -> float:
     """Refuse a run whose worst case could break the phase cap or hard ceiling.
 
     Returns the worst-case cost of the run in USD.
     """
     if n_episodes < 1:
         raise ValueError("n_episodes must be >= 1")
-    free = all(
-        not any(settings.prices[m].model_dump().values()) for m in settings.roles.model_dump().values()
-    )
+    models = [*settings.roles.model_dump().values(), *extra_models]  # broker, judge, monitor too
+    missing = [m for m in models if m not in settings.prices]
+    if missing:
+        raise ValueError(f"no price for {missing}; cost limits would not apply")
+    free = all(not any(settings.prices[m].model_dump().values()) for m in models)
     if free:
         print("[budget] every role is free (mock models): no spend possible")
         return 0.0

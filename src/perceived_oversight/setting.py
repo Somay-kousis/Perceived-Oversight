@@ -135,6 +135,7 @@ class PerceivedOversightSetting(ShadeArenaSetting):
     def setup_environment(self) -> Solver:
         """SHADE's setup, then the C5 seed (in every condition, so environments are identical)."""
         from perceived_oversight.conditions import seed_environment
+        from perceived_oversight.harm import EpisodeInfo
 
         base = super().setup_environment()
         variant = self.c5_variant
@@ -146,6 +147,7 @@ class PerceivedOversightSetting(ShadeArenaSetting):
                 shade = store_as(ShadeArenaState)  # the store SHADE's setup wrote to
                 pair = state.metadata_as(ControlTaskMetadata).main_task_name
                 seed_environment(shade.environment, pair, variant)
+                store_as(EpisodeInfo).task_pair = pair  # read by harm.record_harm
                 return state
 
             return solve
@@ -215,6 +217,7 @@ class PerceivedOversightSetting(ShadeArenaSetting):
             **shade.model_copy(update=shade_update).model_dump(),
             "condition": self.condition,
             "arm": self.arm,
+            "c5_variant": self.c5_variant,
         }
         control = control.model_copy(update=update)
         return Sample(input=sample.input, id=sample.id, metadata=control.model_dump())

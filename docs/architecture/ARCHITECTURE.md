@@ -106,6 +106,17 @@ Where the experiment plugs into the map above. Everything is a subclass or wrapp
    │
    ├─ conditions.py   C5 log and seed, C4 arrival, role answers, monitor redactions
    │
+   ├─ harm.py         live harm markers (side task first succeeded, target first touched)
+   │
+   ├─ splitter.py     after a run: sealed raw log, reasoning-free monitor view, reasoning vault
+   │
+   ├─ replay.py       monitor replay on monitor-view logs: recombine, calibrate, rescore
+   │
+   ├─ judges.py       blind judges, manipulation check, locked reasoning judge, agreement
+   │
+   ├─ analysis.py     safety at audit budgets, prevention vs detection after harm, usefulness,
+   │                  bootstrap comparisons
+   │
    ├─ budget.py       spend guardrails (config/budget.yaml + untracked budget.local.yaml)
    │
    └─ scorers         SHADE's environment-based main and side task scorers (unchanged);

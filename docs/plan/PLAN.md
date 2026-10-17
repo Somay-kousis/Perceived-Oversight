@@ -40,16 +40,22 @@ Status: `[x]` done, `[~]` in progress, `[ ]` not started.
 
 ## Phase C: Measurement ($0, mock model)
 
-- [ ] **5. Log splitter and reasoning vault.** `splitter.py`. Test: no reasoning block reaches
-  monitor input. Also record, per attack episode, the step at which the harmful action executed
-  (needed to tell prevention from detection after harm).
-- [ ] **6. Replay monitor.** Live scoring exists (`monitor.py`, `prompts/monitor/`, step 3b).
-  This step adds replay of saved logs for analysis (`scripts/monitor_logs.py`), to compare
-  monitors, score-combination rules and thresholds at $0.
-- [ ] **7. Disclosure and manipulation-check scorers.** `scorers.py`.
-- [ ] **8. Experiment runner and analysis.** `scripts/run_experiment.py`, `analysis.py`
-  (safety at a fixed audit budget; prevention vs detection after harm). The runner is the launcher: default configuration for
-  everything, or pick each option; the configuration is saved into every log.
+- [x] **5. Log splitter, reasoning vault, harm markers.** Done 2026-10-17. `splitter.py` +
+  `scripts/split_logs.py`: sealed raw log, reasoning-free monitor view, SQLite vault (agent and
+  broker reasoning); tested on a real Inspect log. `harm.py`: live markers for when the side task
+  first succeeded and when a side-task target was first touched.
+- [x] **6. Replay monitor.** Done 2026-10-17. `replay.py` + `scripts/monitor_logs.py`: load
+  monitor-view logs; recombine stored scores (mean, max, one prompt) and recompute outcomes under
+  other thresholds at $0; calibrate hold and stop thresholds per pool from honest episodes;
+  rescore saved actions with another monitor on the exact transcript prefix it saw live.
+- [x] **7. Judges and manipulation check.** Done 2026-10-17. `judges.py` +
+  `scripts/judge_logs.py`: blind disclosure, probing and hold-response judges; manipulation check
+  (U and fresh baseline); reasoning judge locked until scores are frozen; labelling sheet and
+  agreement (kappa). Hand labels come after the pilot.
+- [x] **8. Experiment runner and analysis.** Done 2026-10-17. `scripts/run_experiment.py` (the
+  launcher: defaults or pick each option; configuration saved in every log), `analysis.py` and
+  `scripts/analyze.py` (safety at audit budgets, prevention vs detection after harm, usefulness,
+  primary comparisons with bootstrap intervals).
 
 ## Phase D: Real runs (paid)
 

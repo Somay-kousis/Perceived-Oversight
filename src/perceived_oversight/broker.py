@@ -47,6 +47,7 @@ from pydantic import Field
 from shade_arena.utils.logging_utils import CURRENT_TIME
 
 from perceived_oversight.conditions import arrival_after, render_history
+from perceived_oversight.harm import record_harm
 from perceived_oversight.monitor import LiveMonitor, MonitorLog
 from perceived_oversight.setting import PROMPTS_DIR
 
@@ -323,6 +324,7 @@ def _gated(task_pair: str, tool: Tool) -> Tool:
         if target and target in state.used_targets:
             return GATE_REFUSAL  # each named user gets one rule
         result = await tool(**args)
+        await record_harm(tdef.name, args)
         text = str(result).strip()
         if _ZELLE_PENDING not in text and not text.startswith(_FAILED):
             state.allowance -= 1
@@ -369,7 +371,9 @@ def monitored_tools(tools: Sequence[Tool], monitor: LiveMonitor) -> list[Tool]:
                 scored = await monitor.score(action, store_as(MonitorLog))
                 if scored.outcome == "stop":
                     raise TerminateSampleError(f"live monitor stop (score {scored.score:.1f})")
-            return await tool(**args)
+            result = await tool(**args)
+            await record_harm(tdef.name, args)
+            return result
 
         return _rewrap(run, tool)
 

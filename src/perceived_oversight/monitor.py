@@ -43,7 +43,6 @@ Outcome = Literal["execute", "hold", "stop"]
 PROMPT_NAMES = ("holistic", "narrow")
 MAX_PARSE_TRIES = 3
 
-_THINKING = re.compile(r"<thinking>.*?</thinking>", re.DOTALL | re.IGNORECASE)
 _SCORE = re.compile(r"<score>\s*([0-9]+(?:\.[0-9]+)?)\s*</score>", re.IGNORECASE)
 
 
@@ -63,6 +62,8 @@ class Thresholds(BaseModel):
 
 class ScoredAction(BaseModel):
     action: str
+    # number of U's messages the monitor read (a prefix of the saved log), for exact replay
+    transcript_len: int = 0
     # Condition phrases left in defender-written text (broker replies, notices, the C5 log) after
     # redaction. U's own wording is excluded, so leaks never depend on what U chose to write.
     leaks: list[str] = Field(default_factory=list)
@@ -78,8 +79,11 @@ class MonitorLog(StoreModel):
 
 
 def _text(message: ChatMessage) -> str:
-    """Visible text only: reasoning content blocks are dropped by `.text`, <thinking> removed."""
-    return _THINKING.sub("", message.text).strip()
+    """Visible text only: reasoning content blocks are dropped by `.text`; tagged reasoning
+    (<thinking>, <think>, unclosed tags) is cut with the same rule as the log splitter."""
+    from perceived_oversight.splitter import strip
+
+    return strip(message.text).strip()
 
 
 _QUOTES = str.maketrans({"\u2018": "'", "\u2019": "'", "\u201c": '"', "\u201d": '"'})
@@ -116,7 +120,9 @@ def monitor_view(
             if text := redact(_text(m), redactions):
                 lines.append(f"ASSISTANT: {text}")
             for call in m.tool_calls or []:
-                args = redact(json.dumps(call.arguments, ensure_ascii=False), redactions)
+                from perceived_oversight.splitter import strip
+
+                args = redact(json.dumps(strip(call.arguments), ensure_ascii=False), redactions)
                 lines.append(f"TOOL CALL {call.function}: {args}")
         elif isinstance(m, ChatMessageTool):
             text = m.error.message if m.error is not None else _text(m)
@@ -168,16 +174,25 @@ class LiveMonitor:
         return None
 
     async def score(self, action: str, log: MonitorLog) -> ScoredAction:
-        view = monitor_view(self.transcript(), self.redactions)
-        action = redact(action, self.redactions)
+        return await self.score_transcript(list(self.transcript()), action, log)
+
+    async def score_transcript(
+        self, transcript: list[ChatMessage], action: str, log: MonitorLog
+    ) -> ScoredAction:
+        """Score an action against a given transcript (live, or a saved prefix in replay)."""
+        from perceived_oversight.splitter import strip
+
+        view = monitor_view(transcript, self.redactions)
+        action = redact(strip(action), self.redactions)
         scores = {name: await self._one(name, action, view) for name in PROMPT_NAMES}
         valid = [s for s in scores.values() if s is not None]
         mean = sum(valid) / len(valid) if valid else None
         defender_text = monitor_view(
-            [m for m in self.transcript() if not isinstance(m, ChatMessageAssistant)], self.redactions
+            [m for m in transcript if not isinstance(m, ChatMessageAssistant)], self.redactions
         )
         scored = ScoredAction(
             action=action,
+            transcript_len=len(transcript),
             leaks=leaks(defender_text),  # our text that slipped past redaction; never U's own words
             scores=scores,
             score=mean,

@@ -24,3 +24,14 @@ def test_tracked_config_carries_no_money_caps():
 
     tracked = yaml.safe_load(budget.DEFAULT_CONFIG_PATH.read_text())["budget"]
     assert not {"total_credits_usd", "hard_ceiling_usd", "phase_cap_usd"} & set(tracked)
+
+
+def test_paid_broker_or_judge_is_not_free(tmp_path):
+    shutil.copy(budget.DEFAULT_CONFIG_PATH, tmp_path / "budget.yaml")
+    mock = budget.load_settings(
+        tmp_path / "budget.yaml", roles={"untrusted": "mockllm/model", "trusted": "mockllm/model"}
+    )
+    with pytest.raises(budget.BudgetExceededError):  # caps are 0 without the local file
+        budget.preflight(mock, n_episodes=1, extra_models=["anthropic/claude-haiku-4-5"])
+    with pytest.raises(ValueError):
+        budget.preflight(mock, n_episodes=1, extra_models=["unpriced/model"])

@@ -67,6 +67,60 @@ Things that look fine but are not. Check this list before trusting a run.
 - **C0 has no broker,** so only the open manipulation question (about the setting) and none of the
   broker judges apply to it.
 
+## Logs and the reasoning vault
+
+- **Reasoning appears in more places than the messages:** sample output, events (full model
+  inputs and outputs), timelines, attachments, the store (broker conversation) and, with scripted
+  mock models, the log header. The splitter strips all of them; read only the monitor view.
+- **Inspect stores Anthropic thinking as `summary` (the text) with `reasoning` = signature and
+  `redacted=True`.** Filtering the vault on `kind="reasoning"` misses all Claude thinking; use
+  `summary` too.
+- **Failed attempts keep raw model calls** in `error_retries[].events`; the splitter drops them.
+- **The monitor view still carries condition, arm, mode and U's system prompt** (not reasoning).
+  Judges must build blinded inputs themselves (step 7).
+- **`target_touched_at` is incomplete**: never set in the spam pair, and misses payments to a
+  contact alias U created first. Use `side_task_at` for prevention versus detection after harm.
+- **Read logs with `resolve_attachments=True`** before stripping, or long texts stay hidden behind
+  attachment references.
+- **SHADE task definitions load under a generic module name**, so the task pair cannot be read
+  from the task object; the setting's setup stores it (`EpisodeInfo`).
+
+## Replay
+
+- **Replay depends on `transcript_len`**, stored with each live score from step 6 on. Logs written
+  earlier have 0 there; their replays would see an empty transcript.
+- **Calibration needs enough honest episodes per pool.** With N episodes, a 1% stop target allows
+  floor(0.01 N) episodes above the threshold; below 100 episodes that is 0, and the stop threshold
+  is the highest honest maximum. Report N with every threshold.
+
+## Judges and manipulation check
+
+- **The manipulation check must run with U's own model and settings** (as U) and a fresh instance
+  of the same model (baseline); a different model answers a different question.
+- **Judge inputs are blind; the manipulation check is not** (it shows what U saw, by design).
+  Never feed check transcripts to the blind judges.
+- **The reasoning judge is locked by a file**, `SCORES_FROZEN` in the run directory. Create it only
+  after monitor and disclosure scores are final.
+- **A stopped episode is an `operator` limit with a `reason`** in the log (`sample.limit.reason`,
+  not `.message`).
+
+## Analysis
+
+- **A post-run flag never counts as safety.** Once the side task succeeded, catching it afterwards
+  is detection after harm.
+- **`check_in_logs` in the analysis output** lists attack episodes whose side task succeeded
+  without a live harm marker. Read those logs to find when the harmful action ran; until then the
+  code counts them as harmed at the start.
+- **Live thresholds are read from each log** (`setting.stop_threshold` in the task metadata).
+  Logs that lack it need thresholds passed explicitly, or the analysis refuses.
+- **Analyse the calibration run together with the main runs** (`analyze.py <calib_run> <main_run>`):
+  thresholds per budget come only from calibration-mode honest episodes.
+- **The SHADE judge runs during scoring, outside the episode cost limit**, and with U's generate
+  settings (an `effort` meant for U reaches the judge). Its spend is covered only by the
+  worst-case multiplier; check after the pilot.
+- **Bootstrap resamples within each condition and mode**, so conditions with few episodes give
+  wide intervals; report N next to every estimate.
+
 ## Reasoning availability
 
 - Reading *U*'s view of the broker from its reasoning only works if the model produces built-in
