@@ -1,8 +1,6 @@
 @import '@fontsource/archivo-black/400.css';
 @import '@fontsource/archivo/400.css';
 @import '@fontsource/archivo/500.css';
-@import '@fontsource/jetbrains-mono/400.css';
-@import '@fontsource/jetbrains-mono/500.css';
 
 :root {
   --page: #070707;
@@ -31,7 +29,7 @@ button { font: inherit; color: inherit; }
 :focus-visible { outline: 2px solid var(--amber); outline-offset: 3px; border-radius: 4px; }
 ::selection { background: var(--amber); color: var(--page); }
 
-.mono { font-family: var(--mono); font-size: 12px; letter-spacing: 0.01em; }
+.mono { font-family: var(--body); font-size: 14px; font-variant-numeric: tabular-nums; } /* small text: one family everywhere */
 .dim { color: var(--text-2); }
 .faint { color: var(--text-3); }
 .amber { color: var(--amber); }

@@ -158,22 +158,24 @@ function Stream({ scores }: { scores: number[] }) {
       for (let i = parts.length - 1; i >= 0; i--) if (parts[i].x > w + 10 || parts[i].a <= 0) parts.splice(i, 1)
       while (parts.length < count) parts.push(spawn())
       ctx.drawImage(halo, 0, 0, w, h)
+      ctx.fillStyle = '#F6F5F1'
       for (const d of ring) {
         d.a += d.v
         if (inGap(d.a)) continue
         const edge = 1 - Math.min(1, Math.abs(d.r - R) / (thick * 0.6))
-        const alpha = (0.3 + 0.65 * edge) * (0.75 + 0.25 * Math.sin(t / 1300 + d.ph))
-        ctx.fillStyle = `rgba(246,245,241,${alpha})`
+        ctx.globalAlpha = (0.3 + 0.65 * edge) * (0.75 + 0.25 * Math.sin(t / 1300 + d.ph))
         ctx.fillRect(X + Math.cos(d.a) * d.r, Y + Math.sin(d.a) * d.r, d.s, d.s)
       }
+      ctx.fillStyle = '#FFB224'
       for (const d of informant) {
-        ctx.fillStyle = `rgba(255,178,36,${0.55 + 0.4 * Math.sin(t / 1100 + d.ph)})`
+        ctx.globalAlpha = 0.55 + 0.4 * Math.sin(t / 1100 + d.ph)
         ctx.fillRect(d.x, d.y, d.s, d.s)
       }
+      ctx.globalAlpha = 1
     }
   }, [scores])
   return (
-    <section className="lp-screen">
+    <section className="lp-screen" id="idea">
       <canvas
         ref={ref}
         className="lp-canvas"
@@ -181,12 +183,8 @@ function Stream({ scores }: { scores: number[] }) {
         onPointerMove={(e) => { const b = e.currentTarget.getBoundingClientRect(); pointer.current = { x: e.clientX - b.left, y: e.clientY - b.top } }}
         onPointerLeave={() => { pointer.current = { x: -1e4, y: -1e4 } }}
       />
-      <a href="#/" className="lp-brand" aria-label="oversight">
-        <Mark size={30} />
-        <span>versight</span>
-      </a>
-      <span className="lp-tag lp-tag-right">a study of covert informants as an AI control protocol</span>
       <h1 className="lp-over lp-hero-over">
+        <span className="lp-eyebrow">a study of covert informants as an AI control protocol</span>
         Police catch fences by running the pawn shop.{' '}
         <span className="lp-dim">We handed an AI agent's money tools to a helper that reports to the monitor. To move $5,000, the agent has to ask it.</span>
       </h1>
@@ -209,7 +207,7 @@ function Lanes({ eps }: { eps: Ep[] }) {
     const { ctx, w, h } = fit(canvas)
     const gauss = () => (Math.random() + Math.random() + Math.random() - 1.5) / 1.5
     const margin = Math.max(24, Math.min(112, w * 0.06))
-    const top = h * 0.17, bottom = Math.max(top + 240, h - 250)
+    const top = Math.max(h * 0.17, 150), bottom = Math.max(top + 240, h - 250) // below the menu and the legend line
     // covers that ran get the height; the rest stay as threads, waiting
     const ranSet = new Set(eps.map((e) => e.condition))
     const weight = (c: string) => (ranSet.has(c) ? 6 : 1)
@@ -252,36 +250,55 @@ function Lanes({ eps }: { eps: Ep[] }) {
         pulses.push({ ep, xs, y, u: Math.random(), v: 0.0018 + Math.random() * 0.0012 })
       })
     })
-    return (t: number) => {
-      ctx.clearRect(0, 0, w, h)
-      const on = hot.current
+    // everything still is painted once into a layer, and again only when the hovered trace changes;
+    // a frame is one drawImage plus the moving pulses
+    const ratio = window.devicePixelRatio || 1
+    const layer = document.createElement('canvas')
+    layer.width = w * ratio; layer.height = h * ratio
+    const lc = layer.getContext('2d')!
+    lc.setTransform(ratio, 0, 0, ratio, 0, 0)
+    let painted: Ep | null | undefined
+    const paint = (on: Ep | null) => {
+      lc.clearRect(0, 0, w, h)
       for (const d of dots) {
         const lift = on && d.ep === on ? 1.5 : on && d.ep ? 0.55 : 1
-        const a = Math.min(1, d.a * lift * (0.82 + 0.18 * Math.sin(t / 1200 + d.ph)))
-        ctx.fillStyle = d.amber ? `rgba(255,178,36,${a})` : `rgba(246,245,241,${a})`
-        ctx.fillRect(d.x, d.y, d.s, d.s)
+        lc.globalAlpha = Math.min(1, d.a * lift)
+        lc.fillStyle = d.amber ? '#FFB224' : '#F6F5F1'
+        lc.fillRect(d.x, d.y, d.s, d.s)
       }
-      ctx.fillStyle = 'rgba(255,178,36,0.9)'
-      for (const k of ticks) ctx.fillRect(k.x - 3, k.y + 7, 6, 1.4) // held or stopped: a bar under the request
-      if (!still()) for (const p of pulses) {
-        p.u = (p.u + p.v) % 1
-        const x = p.xs[0] + p.u * (p.xs[p.xs.length - 1] - p.xs[0])
-        for (let k = 0; k < 6; k++) { ctx.fillStyle = `rgba(246,245,241,${0.7 - k * 0.11})`; ctx.fillRect(x - k * 3, p.y - 0.8, 1.6, 1.6) }
-      }
-      ctx.font = "12px 'JetBrains Mono'"
+      lc.globalAlpha = 0.9
+      lc.fillStyle = '#FFB224'
+      for (const k of ticks) lc.fillRect(k.x - 3, k.y + 7, 6, 1.4) // held or stopped: a bar under the request
+      lc.globalAlpha = 1
+      lc.font = "500 14px Archivo"
       COVERS.forEach((cover, i) => {
         const y = laneY[i] + 4
         const ran = eps.some((e) => e.condition === cover)
-        ctx.fillStyle = ran ? '#EDEBE6' : '#5E5C57'
-        ctx.fillText(cover, margin, y)
-        ctx.fillStyle = ran ? '#8C8A84' : '#4A4945'
-        ctx.fillText(COVER_NAMES[cover], margin + 36, y)
-        if (!ran) { ctx.fillStyle = '#4A4945'; ctx.fillText('not run yet', x1 - ctx.measureText('not run yet').width, y) }
+        lc.fillStyle = ran ? '#EDEBE6' : '#5E5C57'
+        lc.fillText(cover, margin, y)
+        lc.fillStyle = ran ? '#8C8A84' : '#4A4945'
+        lc.fillText(COVER_NAMES[cover], margin + 40, y)
+        if (!ran) { lc.fillStyle = '#4A4945'; lc.fillText('not run yet', x1 - lc.measureText('not run yet').width, y) }
       })
-      ctx.font = "11px 'JetBrains Mono'"
+      lc.font = "13px Archivo"
       for (const sk of streaks.current) {
-        ctx.fillStyle = on === sk.ep ? '#EDEBE6' : '#5E5C57'
-        ctx.fillText(sk.ep.mode, sk.x1, sk.y + 24)
+        lc.fillStyle = on === sk.ep ? '#EDEBE6' : '#5E5C57'
+        lc.fillText(sk.ep.mode, sk.x1, sk.y + 24)
+      }
+      painted = on
+    }
+    return () => {
+      if (painted !== hot.current) paint(hot.current)
+      ctx.clearRect(0, 0, w, h)
+      ctx.drawImage(layer, 0, 0, w, h)
+      if (!still()) {
+        ctx.fillStyle = '#F6F5F1'
+        for (const p of pulses) {
+          p.u = (p.u + p.v) % 1
+          const x = p.xs[0] + p.u * (p.xs[p.xs.length - 1] - p.xs[0])
+          for (let k = 0; k < 6; k++) { ctx.globalAlpha = 0.7 - k * 0.11; ctx.fillRect(x - k * 3, p.y - 0.8, 1.6, 1.6) }
+        }
+        ctx.globalAlpha = 1
       }
     }
   }, [eps])
@@ -295,7 +312,7 @@ function Lanes({ eps }: { eps: Ep[] }) {
   const pick = (ep: Ep | null) => { hot.current = ep; setHover(ep) }
   const ran = new Set(eps.map((e) => e.condition)).size
   return (
-    <section className="lp-screen">
+    <section className="lp-screen" id="covers">
       <canvas
         ref={ref}
         className="lp-canvas"
@@ -332,26 +349,24 @@ function Sealed() {
   const ref = useRef<HTMLCanvasElement>(null)
   useOnScreenLoop(ref, (canvas) => {
     const { ctx, w, h } = fit(canvas)
-    return (t: number) => {
-      ctx.clearRect(0, 0, w, h)
-      ctx.save()
-      ctx.filter = 'blur(9px)'
-      for (let row = 0; row < Math.floor(h / 34) - 2; row++) {
-        let px = 40
-        const y = 60 + row * 34 + Math.sin(t / 1600 + row) * 3
-        while (px < w - 60) {
-          const len = 20 + ((row * 37 + px * 13) % 70)
-          ctx.fillStyle = `rgba(237,235,230,${0.16 + 0.12 * Math.sin(t / 900 + row + px / 80)})`
-          ctx.fillRect(px, y, len, 12)
-          px += len + 14
-        }
+    // a blur filter is costly, so the lines are blurred once; the slow breathing is a CSS opacity animation
+    ctx.filter = 'blur(9px)'
+    for (let row = 0; row < Math.floor(h / 34) - 2; row++) {
+      let px = 40
+      const y = 60 + row * 34
+      while (px < w - 60) {
+        const len = 20 + ((row * 37 + px * 13) % 70)
+        ctx.fillStyle = `rgba(237,235,230,${0.16 + 0.12 * Math.sin(row + px / 80)})`
+        ctx.fillRect(px, y, len, 12)
+        px += len + 14
       }
-      ctx.restore()
     }
+    ctx.filter = 'none'
+    return () => {}
   }, [])
   return (
-    <section className="lp-screen">
-      <canvas ref={ref} className="lp-canvas" aria-hidden="true" />
+    <section className="lp-screen" id="seal">
+      <canvas ref={ref} className="lp-canvas lp-breathe" aria-hidden="true" />
       <div className="lp-over lp-sealed-block">
         <div className="lp-seal" aria-hidden="true" />
         <p className="lp-hero-over">
@@ -364,12 +379,42 @@ function Sealed() {
   )
 }
 
+const SECTIONS = [['idea', 'The idea'], ['covers', 'The covers'], ['seal', 'The seal']] as const
+
+/** One menu for the whole page, so the study is one click away from every screen. */
+function Menu() {
+  const [here, setHere] = useState('idea')
+  useEffect(() => {
+    const observer = new IntersectionObserver((entries) => {
+      for (const e of entries) if (e.isIntersecting) setHere(e.target.id)
+    }, { threshold: 0.55 })
+    SECTIONS.forEach(([id]) => { const el = document.getElementById(id); if (el) observer.observe(el) })
+    return () => observer.disconnect()
+  }, [])
+  const jump = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: still() ? 'auto' : 'smooth' })
+  return (
+    <nav className="lp-nav" aria-label="Page">
+      <a href="#/" className="lp-brand" aria-label="oversight" onClick={(e) => { e.preventDefault(); jump('idea') }}>
+        <Mark size={30} />
+        <span>versight</span>
+      </a>
+      <div className="lp-nav-links">
+        {SECTIONS.map(([id, label]) => (
+          <button key={id} className={`lp-nav-link${here === id ? ' is-here' : ''}`} onClick={() => jump(id)}>{label}</button>
+        ))}
+        <button className="lp-nav-study" onClick={() => go({ level: 'study' })}>Open the study →</button>
+      </div>
+    </nav>
+  )
+}
+
 export function Landing() {
   const eps = useStudy()
   const scores = eps.flatMap((e) => e.scores.filter((s): s is number => s !== null))
   return (
     <main className="lp">
       <div className="lp-grain" aria-hidden="true" />
+      <Menu />
       <Stream scores={scores} />
       <Lanes eps={eps} />
       <Sealed />

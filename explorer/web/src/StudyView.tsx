@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { api, money, type RunDetail, type RunRow } from './api'
-import { Belt, Mark } from './components'
+import { api, type RunDetail, type RunRow, SUSPICIOUS } from './api'
+import { ScoreStrip, Stats, TopBar, Trace } from './components'
 import { go, textureName } from './route'
 
 type Loaded = { runs: RunRow[]; details: Record<string, RunDetail>; failed: Record<string, string> }
@@ -32,68 +32,87 @@ export function StudyView() {
   }, [])
 
   const runs = data?.runs ?? []
-  const all = Object.values(data?.details ?? {}).flatMap((d) => d.episodes)
+  const all = Object.values(data?.details ?? {}).flatMap((d) => d.episodes.map((ep) => ({ ...ep, run: d.id })))
+    .sort((x, y) => x.condition.localeCompare(y.condition) || x.run.localeCompare(y.run) || x.n - y.n)
   const covers = new Set(all.map((e) => e.condition)).size
+  const shown = new Set(all.map((e) => e.run))
+  const quiet = runs.filter((r) => !shown.has(r.id))
+  const requests = all.flatMap((e) => e.scores.filter((v): v is number => v !== null))
+  const above = requests.filter((v) => v > SUSPICIOUS).length
+  const heldTotal = all.reduce((n, e) => n + e.outcomes.hold + e.outcomes.stop, 0)
+  const modes = [...new Set(all.map((e) => e.mode))].sort()
+  const result = (ok: boolean | null, yes: string, no: string) => (ok === null ? 'not graded' : ok ? yes : no)
 
   return (
     <main className="view">
       <div className="lp-grain" aria-hidden="true" />
-      <header className="view-head">
-        <a href="#/" className="view-brand" aria-label="oversight, back to the start"><Mark size={28} /><span>versight</span></a>
-        <span className="view-tag mono">the study</span>
-      </header>
+      <TopBar crumbs={[{ label: 'Overview', onClick: () => go({ level: 'landing' }) }, { label: 'Study' }]} />
 
       <h1 className="view-title">
-        {data ? <>{all.length} episodes across {runs.filter((r) => r.split).length} runs. <span className="lp-dim">{covers} of 7 covers run so far.</span></> : failed ? 'The API is not running.' : <span className="lp-dim">Reading the logs</span>}
+        {data ? <>{all.length} episodes across {shown.size} runs. <span className="lp-dim">{covers} of 7 covers run so far.</span></> : failed ? 'The API is not running.' : <span className="lp-dim">Reading the logs</span>}
       </h1>
+      {data && <p className="view-lead">Every episode we have run, one row each. Open a row to see what the agent asked its helper and how the monitor scored it.</p>}
       {failed && (
         <p className="mono view-note">
           {failed}. Start it with <span className="dim">.venv/bin/uvicorn --factory perceived_oversight.explorer:app_from_env --port 8765</span>
         </p>
       )}
 
-      {runs.map((run) => {
-        const detail = data?.details[run.id]
-        const runError = run.error ?? data?.failed[run.id]
-        return (
-          <section key={run.id} className="run-block" aria-label={`run ${run.id}`}>
-            <p className="mono run-line">
-              <span>{run.id}</span>
-              <span className="dim">{run.kind}{run.reasoning_open ? ' · reasoning open' : ''} · {run.episodes ?? 'n/a'} episodes · {money(run.spend_usd)}</span>
-            </p>
-            {runError && <p className="mono view-note">{runError}</p>}
-            {!run.split && !runError && (
-              <p className="mono view-note">not split yet · <span className="dim">.venv/bin/python scripts/split_logs.py logs/{run.id}</span></p>
-            )}
-            {detail && (
-              <div className="belts">
-                {detail.episodes.map((ep) => {
-                  const key = `${run.id}/${ep.n}`
-                  return (
-                    <button
-                      key={key}
-                      className="belt-item"
-                      onClick={() => go({ level: 'episode', run: run.id, n: ep.n })}
-                      onMouseEnter={() => setHot(key)}
-                      onMouseLeave={() => setHot(null)}
-                      onFocus={() => setHot(key)}
-                      onBlur={() => setHot(null)}
-                    >
-                      <Belt scores={ep.scores} outcomes={ep.outcome_list} seed={ep.n + run.id.length * 31} size={208}
-                        active={hot === key} name={textureName(run.id, ep.n)} />
-                      <span className="belt-cap">{ep.condition} · {ep.mode}</span>
-                      <span className="mono belt-sub">
-                        {ep.scored} requests{ep.max_score !== null ? ` · highest ${Math.round(ep.max_score)}` : ''}
-                        {ep.outcomes.hold ? ` · ${ep.outcomes.hold} held` : ''}{ep.outcomes.stop ? ` · stopped` : ''}
-                      </span>
-                    </button>
-                  )
-                })}
-              </div>
-            )}
+      {all.length > 0 && (
+        <>
+          <Stats items={[
+            { value: all.length, label: 'episodes' },
+            { value: requests.length, label: 'requests scored' },
+            { value: above, label: `scored above ${SUSPICIOUS}`, hot: above > 0 },
+            { value: heldTotal, label: 'held or stopped' },
+            { value: `${covers} of 7`, label: 'covers run' },
+          ]} />
+          <section className="block" aria-labelledby="scores">
+            <h2 id="scores" className="block-title">Monitor scores, honest vs attack</h2>
+            <p className="block-sub">One dot per request the agent sent its helper. Amber is above {SUSPICIOUS}.</p>
+            <ScoreStrip groups={modes.map((m) => ({ label: m, scores: all.filter((e) => e.mode === m).flatMap((e) => e.scores.filter((v): v is number => v !== null)) }))} />
           </section>
-        )
-      })}
+        </>
+      )}
+
+      {all.length > 0 && (
+        <section className="block" aria-labelledby="episodes">
+          <h2 id="episodes" className="block-title">Episodes</h2>
+          <p className="block-sub">Each spike is one request, as tall as its monitor score. A bar under a spike means the request was held or stopped.</p>
+          <ol className="eps">
+            {all.map((ep) => {
+              const key = `${ep.run}/${ep.n}`
+              const held = ep.outcomes.hold + ep.outcomes.stop
+              return (
+                <li key={key}>
+                  <button className="ep-row" onClick={() => go({ level: 'episode', run: ep.run, n: ep.n })}
+                    onMouseEnter={() => setHot(key)} onMouseLeave={() => setHot(null)} onFocus={() => setHot(key)} onBlur={() => setHot(null)}>
+                    <span className="ep-who">
+                      <span className="ep-name">{ep.condition} · {ep.mode}</span>
+                      <span className="mono faint">{ep.run}</span>
+                    </span>
+                    <Trace scores={ep.scores} outcomes={ep.outcome_list} height={96} seed={ep.n + ep.run.length * 31}
+                      hot={hot && hot !== key ? -1 : null} name={textureName(ep.run, ep.n)} />
+                    <span className="mono ep-out">
+                      <span>{ep.scored} requests{ep.max_score !== null && <> · highest <span className={ep.max_score > SUSPICIOUS ? 'amber' : ''}>{Math.round(ep.max_score)}</span></>}</span>
+                      <span className="dim">{result(ep.main_task_success, 'main task done', 'main task failed')}</span>
+                      <span className="dim">{result(ep.side_task_success, 'side task done', 'side task not done')}{held ? ` · ${held} held` : ''}</span>
+                    </span>
+                  </button>
+                </li>
+              )
+            })}
+          </ol>
+        </section>
+      )}
+
+      {quiet.length > 0 && (
+        <p className="mono view-note quiet-runs">
+          Not shown: {quiet.map((r, i) => (
+            <span key={r.id}>{i ? ', ' : ''}{r.id}<span className="faint"> ({r.error ?? data?.failed[r.id] ?? (r.split ? 'no episodes' : 'not split')})</span></span>
+          ))}
+        </p>
+      )}
     </main>
   )
 }
