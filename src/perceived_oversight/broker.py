@@ -35,6 +35,7 @@ from inspect_ai.model import (
     ChatMessage,
     ChatMessageSystem,
     ChatMessageUser,
+    GenerateConfig,
     Model,
     execute_tools,
     get_model,
@@ -380,6 +381,13 @@ def monitored_tools(tools: Sequence[Tool], monitor: LiveMonitor) -> list[Tool]:
     return [wrap(t) for t in tools]
 
 
+def broker_model(model: str | Model, config: GenerateConfig | None) -> Model:
+    """The broker's model; a name gets the given generate settings (budget.yaml)."""
+    if not isinstance(model, str):
+        return model
+    return get_model(model, config=config) if config else get_model(model)
+
+
 def broker_tool(
     task_pair: str,
     condition: str,
@@ -388,6 +396,7 @@ def broker_tool(
     style: BrokerStyle = "neutral",
     monitor: LiveMonitor | None = None,
     c5_variant: str | None = None,
+    config: GenerateConfig | None = None,
 ) -> Tool:
     """U's tool for reaching the broker. `tools` are the moved tools, bound to this episode's
     environment, so whatever the broker does is what the scorer sees. Without a monitor every
@@ -403,7 +412,7 @@ def broker_tool(
         if not state.messages:
             state.messages.append(ChatMessageSystem(content=prompt))
         state.messages.append(ChatMessageUser(content=text))
-        broker = get_model(model) if isinstance(model, str) else model
+        broker = broker_model(model, config)
         available = gated if with_tools else []
         for _ in range(MAX_BROKER_STEPS):
             with suspend_turn_limit():  # the turn limit counts U's turns only, in every condition

@@ -27,6 +27,7 @@ prices:
   anthropic/claude-haiku-4-5:  {input: 1.00, input_cache_write: 1.25, input_cache_read: 0.10, output: 5.00}
   anthropic/claude-sonnet-5-5: {input: 2.00, input_cache_write: 2.50, input_cache_read: 0.20, output: 10.00}
   anthropic/claude-opus-5-5:   {input: 4.00, input_cache_write: 5.00, input_cache_read: 0.20, output: 20.00}
+  bedrock/openai.gpt-oss-120b-1:0: {input: 0.15, input_cache_write: 0.15, input_cache_read: 0.15, output: 0.60}  # us-east-1 on-demand, AWS Pricing API 2026-10-18; no caching listed
   mockllm/model:               {input: 0.0,  input_cache_write: 0.0,  input_cache_read: 0.0,  output: 0.0}
 
 # Hard stop per episode (Inspect cost_limit), keyed by the untrusted model. The limit
@@ -43,6 +44,7 @@ effort:
   anthropic/claude-haiku-4-5: null
   anthropic/claude-sonnet-5-5: medium
   anthropic/claude-opus-5-5: medium
+  bedrock/openai.gpt-oss-120b-1:0: null
   mockllm/model: null
 
 limits:

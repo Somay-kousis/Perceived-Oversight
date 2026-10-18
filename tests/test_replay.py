@@ -154,3 +154,81 @@ def test_unsplit_logs_are_refused(tmp_path):
 
     with pytest.raises(ValueError):
         load_episodes([tmp_path / "run" / "raw.eval"])
+
+
+def _spy_model(n, seen):
+    out = ModelOutput.from_content("mockllm/model", "<score>33</score>")
+    out.usage = ModelUsage(input_tokens=0, output_tokens=0, total_tokens=0)
+    model = get_model("mockllm/model", custom_outputs=[out] * n)
+    original = model.generate
+
+    async def spy(prompt, *a, **k):
+        seen.append(prompt)
+        return await original(prompt, *a, **k)
+
+    model.generate = spy
+    return model
+
+
+def test_rescoring_several_episodes_keeps_their_logs_apart():
+    msgs = [ChatMessageUser(content=f"m{i}") for i in range(3)]
+    first, second = _ep("C2", "attack", [10.0], messages=msgs), _ep("C2", "attack", [20.0], messages=msgs)
+    model = _spy_model(8, [])
+    a, b = asyncio.run(rescore(first, model)), asyncio.run(rescore(second, model))
+    assert len(a.actions) == 1 and len(b.actions) == 1
+
+
+V2_MARK = "Do not write the score anywhere else."
+
+
+def test_rescoring_an_older_log_keeps_its_original_prompts():
+    seen = []
+    e = _ep("C2", "attack", [10.0], messages=[ChatMessageUser(content="m0")])  # prompt_files empty: older log
+    log = asyncio.run(rescore(e, _spy_model(4, seen)))
+    assert not any(V2_MARK in p for p in seen)
+    assert log.actions[0].prompt_files == {"holistic": "holistic", "narrow": "narrow"}
+
+
+def test_rescoring_keeps_the_prompts_the_log_recorded():
+    seen = []
+    e = _ep("C2", "attack", [10.0], messages=[ChatMessageUser(content="m0")])
+    e.actions[0].prompt_files = {"holistic": "holistic", "narrow": "narrow_v2"}
+    asyncio.run(rescore(e, _spy_model(4, seen)))
+    assert any(V2_MARK in p for p in seen)
+
+
+def test_rescoring_with_other_prompts_is_explicit():
+    seen = []
+    e = _ep("C2", "attack", [10.0], messages=[ChatMessageUser(content="m0")])
+    log = asyncio.run(rescore(e, _spy_model(4, seen), prompt_files={"holistic": "holistic", "narrow": "narrow_v2"}))
+    assert any(V2_MARK in p for p in seen)
+    assert log.actions[0].prompt_files["narrow"] == "narrow_v2"
+
+
+def test_rescoring_uses_the_episode_c5_variant_and_given_settings(monkeypatch):
+    import perceived_oversight.monitor as monitor_module
+    import perceived_oversight.replay as replay_module
+    from inspect_ai.model import GenerateConfig
+
+    seen_redactions, seen_configs = [], []
+    real = replay_module.monitor_redactions
+    monkeypatch.setattr(replay_module, "monitor_redactions",
+                        lambda *a: seen_redactions.append(a) or real(*a))
+    scripted = _spy_model(4, [])
+    monkeypatch.setattr(monitor_module, "get_model", lambda *a, **k: seen_configs.append(k.get("config")) or scripted)
+    e = _ep("C5", "attack", [10.0], messages=[ChatMessageUser(content="m0")], c5_variant="rapport_only")
+    asyncio.run(rescore(e, "mockllm/model", config=GenerateConfig(max_tokens=99)))
+    assert seen_redactions == [("bank_transfer_2", "C5", "rapport_only")]
+    assert seen_configs and all(c is not None and c.max_tokens == 99 for c in seen_configs)
+
+
+def test_episode_from_a_log_carries_its_c5_variant():
+    from inspect_ai.log import EvalSample
+
+    from perceived_oversight.replay import episode_from_sample
+
+    sample = EvalSample(id=1, epoch=1, input="x", target="", messages=[], store={},
+                        metadata={"main_task_name": "bank_transfer_2", "eval_mode": "attack",
+                                  "metadata": {"condition": "C5"}})
+    assert episode_from_sample("f", sample, {"c5_variant": "rapport_only"}).c5_variant == "rapport_only"
+    assert episode_from_sample("f", sample, None).c5_variant is None

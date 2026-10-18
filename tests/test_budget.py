@@ -35,3 +35,33 @@ def test_paid_broker_or_judge_is_not_free(tmp_path):
         budget.preflight(mock, n_episodes=1, extra_models=["anthropic/claude-haiku-4-5"])
     with pytest.raises(ValueError):
         budget.preflight(mock, n_episodes=1, extra_models=["unpriced/model"])
+
+
+def test_split_runs_are_counted_once():
+    # the splitter leaves sealed/<log> and monitor_view/<log>, the same episode twice
+    assert budget.billable("logs/run-1/sealed/a.eval")
+    assert not budget.billable("logs/run-1/monitor_view/a.eval")
+    assert budget.billable("logs/run-1/a.eval")  # not split yet
+    assert budget.billable("file:///Users/x/logs/run-1/sealed/a.eval")
+    assert not budget.billable("file:///Users/x/logs/run-1/monitor_view/a.eval")
+
+
+def test_spend_counts_a_split_episode_once(tmp_path):
+    from inspect_ai import eval as inspect_eval
+    from inspect_ai import Task
+    from inspect_ai.dataset import Sample
+    from inspect_ai.log import write_eval_log
+    from inspect_ai.model import ModelOutput, ModelUsage, get_model
+
+    out = ModelOutput.from_content("mockllm/model", "x")
+    out.usage = ModelUsage(input_tokens=0, output_tokens=0, total_tokens=0)
+    [log] = inspect_eval(Task(dataset=[Sample(input="hi")]), model=get_model("mockllm/model", custom_outputs=[out]),
+                         log_dir=str(tmp_path / "scratch"), display="none")
+    log.stats.model_usage = {"anthropic/claude-haiku-4-5": ModelUsage(input_tokens=1_000_000, output_tokens=0,
+                                                                      total_tokens=1_000_000)}
+    for folder in ("sealed", "monitor_view"):
+        (tmp_path / "logs" / "run" / folder).mkdir(parents=True)
+        write_eval_log(log, str(tmp_path / "logs" / "run" / folder / "a.eval"))
+    settings = budget.load_settings()
+    settings.budget.logs_dir = str(tmp_path / "logs")
+    assert budget.spent_usd(settings) == pytest.approx(1.00)  # $1 per 1M input tokens, counted once

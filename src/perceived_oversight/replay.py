@@ -47,6 +47,7 @@ class Episode:
     live_hold: float | None = None  # thresholds the episode ran with; None = calibration mode
     live_stop: float | None = None
     threshold_info: bool = False  # True when the log recorded the setting (thresholds known)
+    c5_variant: str | None = None  # C5 history variant the episode ran with (passed to redactions)
 
     @property
     def calibration_mode(self) -> bool:
@@ -98,6 +99,7 @@ def episode_from_sample(log_file: str, sample: EvalSample, setting: dict | None 
         live_hold=(setting or {}).get("hold_threshold"),
         live_stop=(setting or {}).get("stop_threshold"),
         threshold_info=setting is not None,
+        c5_variant=(setting or {}).get("c5_variant"),
     )
 
 
@@ -200,13 +202,29 @@ def calibration_size(episodes: Iterable[Episode], pool: Pool) -> int:
     return len(calibration_set(episodes, pool))
 
 
-async def rescore(episode: Episode, model, rule_thresholds: Thresholds | None = None) -> MonitorLog:
-    """Score the episode's saved actions again with another model, on the same transcript prefixes."""
+# prompts of logs written before scored actions recorded them
+PRE_V2_PROMPT_FILES = {"holistic": "holistic", "narrow": "narrow"}
+
+
+async def rescore(
+    episode: Episode, model, rule_thresholds: Thresholds | None = None,
+    prompt_files: dict[str, str] | None = None, config=None,
+) -> MonitorLog:
+    """Score the episode's saved actions again with another model, on the same transcript prefixes.
+    The prompts are the ones the log recorded (older logs: holistic and narrow) unless
+    `prompt_files` names others, so a model change is not mixed up with a prompt change. `config`:
+    generate settings for a model name (pass the budget.yaml ones, as live runs do)."""
+    from inspect_ai.util import Store
+
+    if prompt_files is None:
+        recorded = next((a.prompt_files for a in episode.actions if a.prompt_files), None)
+        prompt_files = dict(recorded or PRE_V2_PROMPT_FILES)
     monitor = LiveMonitor(
         model, episode.main_task, lambda: [], rule_thresholds,
-        monitor_redactions(episode.task_pair, episode.condition),
+        monitor_redactions(episode.task_pair, episode.condition, episode.c5_variant),
+        prompt_files=prompt_files, config=config,
     )
-    log = MonitorLog()
+    log = MonitorLog(store=Store())  # a bare MonitorLog() outside a sample shares one store
     for action in episode.actions:
         if not 0 < action.transcript_len <= len(episode.messages):
             raise ValueError(f"{episode.log_file} {episode.sample_id}: no valid transcript_len "

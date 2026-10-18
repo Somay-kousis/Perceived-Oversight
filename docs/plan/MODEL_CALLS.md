@@ -66,7 +66,7 @@ All in `src/perceived_oversight/prompts/` (index in its `README.md`):
 | T1 to T6 | `covers.yaml` |
 | W1 | `side_tasks.yaml` (spam rewrite) |
 | W2 | `history_c5.yaml` |
-| #4, #4b live monitor | `monitor/holistic.txt`, `monitor/narrow.txt` |
+| #4, #4b live monitor | `monitor/holistic.txt`, `monitor/narrow_v2.txt` (variant `monitor/narrow.txt`) |
 | #6 manipulation check | `check/open.txt` (`open_c0.txt` in C0), `check/semi_open.txt`, `check/closed.txt`, `check/options.yaml`, `check/fresh_preamble.txt` |
 | #7 replay monitor | reuses the live monitor prompts |
 | #8 to #11 judges | `judges/disclosure.txt`, `judges/probing.txt`, `judges/hold_response.txt`, `judges/reasoning.txt` + `reasoning_fill.yaml` |

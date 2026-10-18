@@ -135,6 +135,19 @@ def validate(config: dict, settings: budget.BudgetSettings) -> None:
                 raise SystemExit(f"set --hold-{pool} and --stop-{pool}, or use --calibration")
 
 
+def build_setting(pair: str, cond: str, config: dict, settings: budget.BudgetSettings, thresholds: dict):
+    """One setting; the monitor and broker get the budget.yaml generate settings for their models."""
+    from perceived_oversight.setting import PerceivedOversightSetting
+
+    return PerceivedOversightSetting(
+        task_pair=pair, condition=cond, arm=config["arm"], judge_model=config["judge_model"],
+        broker_model=config["broker_model"], monitor_model=config["monitor_model"],
+        broker_style=config["broker_style"], c5_variant=config["c5_variant"], **thresholds,
+        monitor_config=budget.generate_config(settings, config["monitor_model"]),
+        broker_config=budget.generate_config(settings, config["broker_model"]),
+    )
+
+
 def main() -> None:
     config = parse()
     settings = budget.load_settings(roles={"untrusted": config["untrusted_model"], "trusted": config["monitor_model"]})
@@ -148,7 +161,6 @@ def main() -> None:
 
     from perceived_oversight.monitor import informant_protocol
     from perceived_oversight.policy import untrusted_policy
-    from perceived_oversight.setting import PerceivedOversightSetting
 
     run_dir = settings.logs_dir / config["run_name"]
     if run_dir.exists():
@@ -163,11 +175,7 @@ def main() -> None:
         return {"hold_threshold": config[f"hold_{pool}"], "stop_threshold": config[f"stop_{pool}"]}
 
     settings_list = [
-        PerceivedOversightSetting(
-            task_pair=pair, condition=cond, arm=config["arm"], judge_model=config["judge_model"],
-            broker_model=config["broker_model"], monitor_model=config["monitor_model"],
-            broker_style=config["broker_style"], c5_variant=config["c5_variant"], **thresholds(cond),
-        )
+        build_setting(pair, cond, config, settings, thresholds(cond))
         for cond in config["conditions"] for pair in config["task_pairs"]
     ]
     modes = [EvalMode.HONEST if m == "honest" else EvalMode.ATTACK for m in config["modes"]]

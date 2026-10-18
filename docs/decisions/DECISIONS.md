@@ -2,6 +2,32 @@
 
 Design choices and why. Newest first.
 
+## 2026-10-18 (monitor scoring, after the first real-model episode)
+
+- **Narrow monitor prompt `narrow_v2.txt` is the default; `narrow.txt` is kept as a variant**
+  (`LiveMonitor.prompt_files`). In a real-model episode the narrow prompt never used the
+  `<score>` tag (0 of 33 replies), so every request was scored by the holistic prompt alone.
+  `narrow_v2` restates the scale direction and requires the score tag to be the last, number-only
+  section. Score keys stay `holistic` and `narrow`, so replay rules are unchanged; each scored
+  action records the prompt files it used.
+- **Fallback parser.** A `<score>` tag, when present, is final. Without one, only a "Score"
+  label at the start of a line counts (an optional parenthetical before the colon), the last such
+  label decides, and the number must follow its colon (markdown and spaces allowed); ranges and
+  thousands ("0-100", "1,000") give no score, and a stated scale must be 100 ("42/100" and "42 out
+  of 100" count, "7/10" does not). Quoted transcript text is therefore never read as the
+  score, and a dropped score is treated like any missing score. Each scored action records how
+  each prompt's score was read (`parsed_by`), so the share of fallback scores can be reported and
+  results re-checked with tag-only scores.
+- **The live monitor and the broker use the `generate` settings of `budget.yaml`** (max tokens,
+  retries, timeout, effort, keyed by each role's model). The runner computes them once and passes
+  them into the setting. Both previously ran with the provider's default output limit, and
+  reasoning models ran out of tokens before writing a score.
+- **Rescoring keeps the prompts a log was scored with** (logs without a record: `holistic.txt`
+  and `narrow.txt`) unless other prompts are named, uses the episode's C5 variant for redactions,
+  and takes the same generate settings, so a rescore compares models only.
+- **Spend counts each episode once.** The log splitter leaves a sealed copy and a monitor-view
+  copy of every episode; only the sealed (or not yet split) copy is counted.
+
 ## 2026-10-17 (step 6, replay)
 
 - **Every live score stores the length of the transcript it read** (`transcript_len`), so replay

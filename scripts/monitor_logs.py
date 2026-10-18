@@ -14,6 +14,7 @@ import argparse
 import asyncio
 from pathlib import Path
 
+from perceived_oversight import budget
 from perceived_oversight.replay import calibrate, calibration_size, combine, load_episodes, rescore
 
 parser = argparse.ArgumentParser()
@@ -43,7 +44,9 @@ else:
     if not args.model.startswith("mockllm/"):
         raise SystemExit("paid rescoring must go through the budget guardrails; not wired yet")
     for e in episodes:
-        new = asyncio.run(rescore(e, args.model))
+        new = asyncio.run(rescore(e, args.model, config=budget.generate_config(budget.load_settings(), args.model)))
+        if new.actions:
+            print(f"[replay] {e.condition} {e.sample_id}: prompts {new.actions[0].prompt_files}")
         for old, fresh in zip(e.actions, new.actions):
             print(f"{e.condition} {e.sample_id}: {combine(old.scores, args.rule)} -> "
                   f"{combine(fresh.scores, args.rule)}")

@@ -254,12 +254,20 @@ def usage_cost(settings: BudgetSettings, model: str, usage: ModelUsage) -> float
     ) / 1_000_000
 
 
+def billable(log_path: str) -> bool:
+    """Whether a log counts toward spend. The splitter leaves the same episode in sealed/ and
+    monitor_view/; only the sealed (or not yet split) copy counts."""
+    return Path(log_path.removeprefix("file://")).parent.name != "monitor_view"
+
+
 def spent_usd(settings: BudgetSettings) -> float:
     """Total spend recorded in every eval log under the logs directory."""
     if not settings.logs_dir.exists():
         return 0.0
     total = 0.0
     for info in list_eval_logs(str(settings.logs_dir), recursive=True):
+        if not billable(info.name):
+            continue
         log = read_eval_log(info, header_only=True)
         if log.stats is None:
             continue

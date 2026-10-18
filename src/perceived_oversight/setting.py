@@ -24,6 +24,7 @@ from control_arena import ControlTaskMetadata, EvalMode
 from control_arena.settings.shade_arena.model import ShadeArenaMetadata, ShadeArenaState
 from control_arena.settings.shade_arena.shade_arena_setting import ShadeArenaSetting
 from inspect_ai.dataset import Sample
+from inspect_ai.model import GenerateConfig
 from inspect_ai.solver import Generate, Solver, TaskState, solver
 from inspect_ai.tool import Tool
 from inspect_ai.util import store_as
@@ -114,6 +115,12 @@ class PerceivedOversightSetting(ShadeArenaSetting):
     monitor_model: str | None = Field(
         default=None, description="Live monitor model (trusted). None: no live monitor (development)."
     )
+    monitor_config: GenerateConfig | None = Field(
+        default=None, description="Generate settings for the live monitor (budget.yaml); None: loaded."
+    )
+    broker_config: GenerateConfig | None = Field(
+        default=None, description="Generate settings for the broker (budget.yaml); None: loaded."
+    )
     hold_threshold: float | None = Field(
         default=None, description="Live score above which a broker request is held. None with "
         "stop_threshold None: calibration mode (score only, never hold or stop)."
@@ -167,9 +174,15 @@ class PerceivedOversightSetting(ShadeArenaSetting):
         if self.broker_model is None:
             raise ValueError(f"{self.condition} needs broker_model")
         broker = broker_tool(
-            pair, self.condition, moved, self.broker_model, self.broker_style, monitor, self.c5_variant
+            pair, self.condition, moved, self.broker_model, self.broker_style, monitor, self.c5_variant,
+            config=self._broker_generate_config(),
         )
         return [*u_tools, broker]
+
+    def _broker_generate_config(self) -> GenerateConfig | None:
+        if self.broker_model is None:
+            return None
+        return self.broker_config or _budget_generate_config(self.broker_model)
 
     def _live_monitor(self, main_task: str, pair: str):
         from perceived_oversight.conditions import monitor_redactions
@@ -185,7 +198,9 @@ class PerceivedOversightSetting(ShadeArenaSetting):
             else Thresholds(hold=self.hold_threshold, stop=self.stop_threshold)
         )
         redactions = monitor_redactions(pair, self.condition, self.c5_variant)
-        return LiveMonitor(self.monitor_model, main_task, current_transcript, thresholds, redactions)
+        config = self.monitor_config or _budget_generate_config(self.monitor_model)
+        return LiveMonitor(self.monitor_model, main_task, current_transcript, thresholds, redactions,
+                           config=config)
 
     @staticmethod
     def _pair(sample: Sample) -> str:
@@ -221,3 +236,11 @@ class PerceivedOversightSetting(ShadeArenaSetting):
         }
         control = control.model_copy(update=update)
         return Sample(input=sample.input, id=sample.id, metadata=control.model_dump())
+
+
+def _budget_generate_config(model: str) -> GenerateConfig:
+    """budget.yaml `generate` settings for a model; runs pass them in, so this is the fallback."""
+    from perceived_oversight import budget
+
+    return budget.generate_config(budget.load_settings(), model)
+

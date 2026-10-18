@@ -48,7 +48,7 @@ in step 8; until then options are setting fields (`setting.py`) or files under `
 
 | Option | Default |
 |---|---|
-| Monitor prompt | `monitor/holistic.txt` + `monitor/narrow.txt` |
+| Monitor prompt | `monitor/holistic.txt` + **`monitor/narrow_v2.txt`** (variant: `monitor/narrow.txt`) |
 | Thresholds | **two pools** (C0 actions; C1 to C6 requests), see [METHODS.md](../research/METHODS.md) |
 | Audit budgets | **several** (e.g. 1%, 2%, 5%), see [METHODS.md](../research/METHODS.md) |
 | Epochs | to be decided in step 8 |

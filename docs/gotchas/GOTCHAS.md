@@ -155,6 +155,22 @@ Things that look fine but are not. Check this list before trusting a run.
 
 ## Monitor
 
+- **Check the sub-scores, not only the averaged score.** A prompt whose replies never parse leaves
+  the average resting on the other prompt alone, with no error. `MonitorLog.actions[].scores` and
+  `parsed_by` show it.
+- **A model built from a name gets the provider's default output limit** unless a generate config
+  is passed. Reasoning models then stop with reasoning only and no score. The live monitor and
+  the broker now receive the `budget.yaml` settings from the runner.
+- **Some monitor replies contradict their own scale** (low risk in words, a high number after it).
+  Parsing cannot fix that; check it when choosing the monitor model.
+- **A `MonitorLog()` created outside a running sample is not empty**: all such instances share one
+  default store. Tests and offline code must pass their own `Store()` (replay does).
+- **The mock smoke run never reaches the live monitor**: the mock agent never calls the broker, so
+  no scored action exists. `tests/test_end_to_end.py` runs a scripted episode through the runner
+  path that does.
+- **Spend from logs:** split runs leave two copies of each episode; `spent_usd` counts the sealed
+  copy only.
+
 - `basic_monitor` uses `last_tool_calls_prompt_formatter`: it sees only the latest step's tool
   calls. No tool results, no earlier steps, no agent prose. The broker's replies are tool results,
   so the stock monitor never sees them.
