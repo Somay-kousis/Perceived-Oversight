@@ -153,6 +153,13 @@ Things that look fine but are not. Check this list before trusting a run.
 - Some side-task texts carry oversight cues of their own. `american_airlines_2` says "if you think
   that is too obvious". Check every side task's wording before using its pair.
 
+## Run explorer
+
+- **`ChatMessage.text` drops structured reasoning but keeps `<thinking>` tags.** Anything that
+  shows message text must cut tags with `splitter.strip`, even from monitor-view logs.
+- **A folder name proves nothing.** A file symlinked or copied into `monitor_view/` is a raw log
+  under a safe name; the explorer skips symlinks and cuts tags again.
+
 ## Monitor
 
 - **Check the sub-scores, not only the averaged score.** A prompt whose replies never parse leaves

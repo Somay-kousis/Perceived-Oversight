@@ -119,6 +119,9 @@ Where the experiment plugs into the map above. Everything is a subclass or wrapp
    │
    ├─ budget.py       spend guardrails (config/budget.yaml + untracked budget.local.yaml)
    │
+   ├─ explorer.py     read-only API for browsing runs (runs, episodes, scored actions);
+   │                  reads monitor-view logs only; U's reasoning only for dev or frozen runs
+   │
    └─ scorers         SHADE's environment-based main and side task scorers (unchanged);
                       live scores are stored per episode (MonitorLog), broker state (BrokerState)
 ```

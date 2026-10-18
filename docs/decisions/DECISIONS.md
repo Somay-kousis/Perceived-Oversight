@@ -2,6 +2,18 @@
 
 Design choices and why. Newest first.
 
+## 2026-10-18 (run explorer API)
+
+- **A read-only API serves runs for browsing** (`explorer.py`, FastAPI): runs, episodes, scored
+  actions with how each score was read, and visible steps. Content comes from monitor-view logs
+  only; raw and sealed logs are read for their headers (spend, episode counts) and never for
+  samples. Symlinked logs or folders inside a run are ignored, so a raw log cannot be served
+  under the monitor-view name, and step text is cut of reasoning tags a second time.
+- **The agent's reasoning stays sealed unless the run says otherwise.** A run is a development
+  run only when `RUN_KIND` contains `dev`; anything else is a study run, whose agent reasoning is
+  sent only after `SCORES_FROZEN` exists (blind analysis). Study runs get a block count instead of
+  the text. Broker reasoning is the defence's own text and is always shown.
+
 ## 2026-10-18 (monitor scoring, after the first real-model episode)
 
 - **Narrow monitor prompt `narrow_v2.txt` is the default; `narrow.txt` is kept as a variant**
