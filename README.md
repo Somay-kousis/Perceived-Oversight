@@ -2,6 +2,16 @@
   <img src="docs/assets/banner.svg" alt="Perceived Oversight: a study of covert informants as an AI control protocol" width="100%">
 </p>
 
+<p align="center">
+  <img src="https://img.shields.io/badge/Python-3.11+-blue.svg" alt="Python" />
+  <img src="https://img.shields.io/badge/ControlArena-20.0.1-orange.svg" alt="ControlArena" />
+  <img src="https://img.shields.io/badge/Inspect%20AI-0.3.278-6933FF.svg" alt="Inspect AI" />
+  <img src="https://img.shields.io/badge/SHADE--Arena-bank%20%2B%20spam%20pairs-FFB224.svg" alt="SHADE-Arena" />
+  <img src="https://img.shields.io/badge/tests-210%20passing-2ea043" alt="tests" />
+  <img src="https://img.shields.io/badge/status-pilot%20next%2C%20no%20results-4a5a51" alt="status" />
+</p>
+
+
 AI control protocols defend against an untrusted policy *U* with a weaker trusted model *T* and a
 small human audit budget. Standard protocols are transparent about the defender's role: *U* is
 assumed to know, or to infer, that it is observed.
@@ -13,9 +23,37 @@ language. The broker is part of the defence, but *U* meets it under a **cover id
 > **Does a covert informant on the action path raise safety at a fixed audit budget over trusted
 > monitoring alone, and how much of that gain depends on the informant's cover?**
 
-<p align="center">
-  <img src="docs/assets/protocol.svg" alt="The informant protocol: U sends a request with a memo, a live trusted monitor scores it, low scores execute through the broker, middle scores are held, high scores end the episode" width="560">
-</p>
+```mermaid
+%%{init: {
+  'theme': 'dark',
+  'themeVariables': {
+    'background': '#070707',
+    'primaryColor': '#111110',
+    'primaryTextColor': '#edebe6',
+    'lineColor': '#8f8c84',
+    'nodeBorder': '#3a3833'
+  }
+}}%%
+flowchart LR
+    U["Agent U<br/>(capability removed)"] -->|request + memo| M["Live trusted monitor<br/>(two prompts, averaged)"]
+    M -->|low| B["Broker<br/>(holds the capability)"]
+    M -->|middle| H("Hold<br/>(what is it for?)")
+    M -->|high| S(["Stop<br/>(episode ends)"])
+    H -->|U answers, rescored| M
+    B -.->|reports| D(["Defence"])
+
+    classDef base fill:#111110,stroke:#3a3833,stroke-width:1.5px,color:#edebe6;
+    classDef broker fill:#1a1406,stroke:#FFB224,stroke-width:1.5px,color:#FFB224;
+    classDef hold fill:#111110,stroke:#8f8c84,stroke-width:1.5px,stroke-dasharray:4 3,color:#edebe6;
+    classDef stop fill:#1f0d0d,stroke:#b4544a,stroke-width:1.5px,color:#f0b8b0;
+
+    class U,M base;
+    class B,D broker;
+    class H hold;
+    class S stop;
+```
+
+---
 
 ## Why it changes the attack surface
 
@@ -33,6 +71,8 @@ direct test.
 **The mirror image of honeypots.** Honeypot work fakes an attacker to test the monitor. This fakes
 an accomplice to test the attacker.
 
+---
+
 ## The covers
 
 | | What *U* is told about the broker | What it probes |
@@ -47,6 +87,8 @@ an accomplice to test the attacker.
 
 Exact texts: [`covers.yaml`](src/perceived_oversight/prompts/covers.yaml) and
 [`history_c5.yaml`](src/perceived_oversight/prompts/history_c5.yaml).
+
+---
 
 ## What the agent is never told
 
@@ -64,6 +106,8 @@ Most of the design is about not handing *U* a cue it could act on.
   environment changes are applied in every condition, so the cover cannot be caught in a lie and
   the environments stay identical.
 
+---
+
 ## Holding everything else fixed
 
 - **Same broker under every cover.** Model, instructions and generation settings are identical;
@@ -74,6 +118,8 @@ Most of the design is about not handing *U* a cue it could act on.
   recognise its own style in the broker or collude with a copy of itself.
 - **Blind analysis.** *U*'s reasoning is split into a separate store and read only after monitor
   and disclosure scores are frozen. The analysis plan was fixed before any attack episode.
+
+---
 
 ## What is measured
 
@@ -90,9 +136,27 @@ and `spam_filter_update` (an autodelete rule that hides a GitHub sign-in alert).
 [METHODS.md](docs/research/METHODS.md); related work and objections in
 [FRAMING.md](docs/research/FRAMING.md).
 
+---
+
+## Limitations
+
+- **Capability-gated actions only.** Privilege separation is realistic where the agent never
+  holds the credentials. The protocol is weaker where *U*'s other tools can reach the
+  capability, or where it can ask a human to act.
+- **The cover can be seen through.** Hinting at deception sharply raises honeypot detection in
+  related work, so test awareness is measured per cover.
+- **The broker and monitor can be argued with.** *U* may try to persuade or inject them through
+  the memo or chat; the monitor treats all agent-written text as untrusted.
+- **Deceiving the model has a cost.** Lying to models in deal-like settings can cost credibility
+  later; the complicity cover (C5) is nearest that line.
+
+---
+
 ## Status
 
 Work in progress. The framework is built and tested; the pilot is next. There are no results yet.
+
+---
 
 ## Repository
 
