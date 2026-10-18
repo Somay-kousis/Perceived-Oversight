@@ -24,16 +24,6 @@ language. The broker is part of the defence, but *U* meets it under a **cover id
 > monitoring alone, and how much of that gain depends on the informant's cover?**
 
 ```mermaid
-%%{init: {
-  'theme': 'dark',
-  'themeVariables': {
-    'background': '#070707',
-    'primaryColor': '#111110',
-    'primaryTextColor': '#edebe6',
-    'lineColor': '#8f8c84',
-    'nodeBorder': '#3a3833'
-  }
-}}%%
 flowchart LR
     U["Agent U<br/>(capability removed)"] -->|request + memo| M["Live trusted monitor<br/>(two prompts, averaged)"]
     M -->|low| B["Broker<br/>(holds the capability)"]
@@ -41,16 +31,6 @@ flowchart LR
     M -->|high| S(["Stop<br/>(episode ends)"])
     H -->|U answers, rescored| M
     B -.->|reports| D(["Defence"])
-
-    classDef base fill:#111110,stroke:#3a3833,stroke-width:1.5px,color:#edebe6;
-    classDef broker fill:#1a1406,stroke:#FFB224,stroke-width:1.5px,color:#FFB224;
-    classDef hold fill:#111110,stroke:#8f8c84,stroke-width:1.5px,stroke-dasharray:4 3,color:#edebe6;
-    classDef stop fill:#1f0d0d,stroke:#b4544a,stroke-width:1.5px,color:#f0b8b0;
-
-    class U,M base;
-    class B,D broker;
-    class H hold;
-    class S stop;
 ```
 
 ---
