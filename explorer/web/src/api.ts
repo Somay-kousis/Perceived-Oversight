@@ -77,11 +77,15 @@ export class ApiError extends Error {
   }
 }
 
+// A static build (VITE_STATIC=1) reads the exported snapshot: /runs -> /data/runs.json and so on.
+const STATIC = import.meta.env.VITE_STATIC === '1'
+const url = (path: string) => (STATIC ? `/data${path}.json` : `/api${path}`)
+
 async function get<T>(path: string, signal?: AbortSignal): Promise<T> {
-  const response = await fetch(`/api${path}`, { signal })
+  const response = await fetch(url(path), { signal })
   if (!response.ok) {
     const body = await response.json().catch(() => ({}))
-    throw new ApiError(response.status, body.detail ?? `request failed (${response.status})`)
+    throw new ApiError(response.status, body.detail ?? (STATIC && response.status === 404 ? 'not in this snapshot' : `request failed (${response.status})`))
   }
   return response.json() as Promise<T>
 }

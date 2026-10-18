@@ -11,12 +11,17 @@ counts as a study run and gets a sealed bar with a block count. Broker reasoning
 own text and is always shown.
 
     .venv/bin/uvicorn --factory perceived_oversight.explorer:app_from_env   (LOGS_DIR, default logs/)
+
+`export_snapshot` writes the same responses as static JSON files for hosting without a server, with
+spend left out; it goes through these routes, so the vault rule applies unchanged.
 """
 
 from __future__ import annotations
 
+import json
 import os
 import re
+import shutil
 import sqlite3
 from contextlib import closing
 from pathlib import Path
@@ -187,3 +192,33 @@ def create_app(logs_dir: Path) -> FastAPI:
 
 def app_from_env() -> FastAPI:
     return create_app(Path(os.environ.get("LOGS_DIR", budget.load_settings().logs_dir)))
+
+
+def export_snapshot(logs_dir: Path, out_dir: Path) -> None:
+    """Write every API response as JSON under out_dir (runs.json, runs/<id>.json,
+    runs/<id>/episodes/<n>.json). Spend is nulled; an older snapshot there is replaced."""
+    from fastapi.testclient import TestClient
+
+    out = Path(out_dir)
+    if (out / "runs").is_dir():
+        shutil.rmtree(out / "runs")  # only what an earlier export wrote
+    (out / "runs").mkdir(parents=True, exist_ok=True)
+    client = TestClient(create_app(Path(logs_dir)))
+
+    def write(path: Path, data: Any) -> None:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(data, ensure_ascii=False))
+
+    runs = [{**row, "spend_usd": None} for row in client.get("/runs").json()]
+    write(out / "runs.json", runs)
+    for row in runs:
+        if not row["split"] or row["error"]:
+            continue
+        detail = client.get(f"/runs/{row['id']}")
+        if detail.status_code != 200:
+            continue
+        write(out / "runs" / f"{row['id']}.json", detail.json())
+        for ep in detail.json()["episodes"]:
+            response = client.get(f"/runs/{row['id']}/episodes/{ep['n']}")
+            if response.status_code == 200:
+                write(out / "runs" / row["id"] / "episodes" / f"{ep['n']}.json", response.json())

@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:static": "tsc -b && VITE_STATIC=1 vite build && cp -R dist-data dist/data && cp vercel.json dist/vercel.json",
     "lint": "oxlint",
     "preview": "vite preview"
   },

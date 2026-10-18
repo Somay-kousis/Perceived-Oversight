@@ -22,3 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# exported snapshot of the logs: hosted, never committed
+dist-data

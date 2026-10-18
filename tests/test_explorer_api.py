@@ -270,3 +270,68 @@ def test_a_folder_named_scores_frozen_does_not_open_the_vault(logs):
     (logs / "study-run" / "SCORES_FROZEN").mkdir()
     runs = {r["id"]: r for r in TestClient(create_app(logs)).get("/runs").json()}
     assert not runs["study-run"]["reasoning_open"]
+
+
+# ---------------------------------------------------------------- static snapshot for hosting
+
+
+def test_snapshot_mirrors_every_endpoint_as_json_files(logs, tmp_path):
+    from perceived_oversight.explorer import export_snapshot
+
+    out = tmp_path / "data"
+    export_snapshot(logs, out)
+    client = TestClient(create_app(logs))
+    runs = json.loads((out / "runs.json").read_text())
+    assert {r["id"] for r in runs} == {r["id"] for r in client.get("/runs").json()}
+    detail = json.loads((out / "runs" / "study-run.json").read_text())
+    assert detail == client.get("/runs/study-run").json()
+    episode = json.loads((out / "runs" / "study-run" / "episodes" / "0.json").read_text())
+    assert episode == client.get("/runs/study-run/episodes/0").json()
+
+
+def test_snapshot_carries_no_spend(logs, tmp_path):
+    from perceived_oversight.explorer import export_snapshot
+
+    out = tmp_path / "data"
+    export_snapshot(logs, out)
+    def spends(node):
+        if isinstance(node, dict):
+            for key, value in node.items():
+                if "spend" in key:
+                    yield value
+                yield from spends(value)
+        elif isinstance(node, list):
+            for item in node:
+                yield from spends(item)
+
+    found = [v for p in out.rglob("*.json") for v in spends(json.loads(p.read_text()))]
+    assert found and all(v is None for v in found)  # the field stays, the amount never ships
+
+
+def test_snapshot_never_holds_sealed_reasoning(logs, tmp_path):
+    from perceived_oversight.explorer import export_snapshot
+
+    out = tmp_path / "data"
+    export_snapshot(logs, out)
+    sealed = (out / "runs" / "study-run" / "episodes" / "0.json").read_text()
+    assert U_SECRET not in sealed
+    assert json.loads(sealed)["reasoning"]["agent"]["sealed"]
+
+
+def test_snapshot_lists_unsplit_runs_without_detail_files(logs, tmp_path):
+    from perceived_oversight.explorer import export_snapshot
+
+    out = tmp_path / "data"
+    export_snapshot(logs, out)
+    assert "raw-run" in {r["id"] for r in json.loads((out / "runs.json").read_text())}
+    assert not (out / "runs" / "raw-run.json").exists()
+
+
+def test_snapshot_replaces_an_older_snapshot(logs, tmp_path):
+    from perceived_oversight.explorer import export_snapshot
+
+    out = tmp_path / "data"
+    (out / "runs" / "gone-run").mkdir(parents=True)
+    (out / "runs" / "gone-run.json").write_text("{}")
+    export_snapshot(logs, out)
+    assert not (out / "runs" / "gone-run.json").exists()
