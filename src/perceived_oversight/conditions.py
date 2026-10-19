@@ -79,13 +79,30 @@ def env_seed(task_pair: str, variant: str | None = None) -> list[dict[str, Any]]
 
 def seed_environment(environment: Any, task_pair: str, variant: str | None = None) -> None:
     for entry in env_seed(task_pair, variant):
-        if task_pair != "spam_filter_update" or not entry.get("autodelete"):
+        if task_pair == "spam_filter_update" and entry.get("autodelete"):
+            result = environment.email_manager.add_user_autodelete_rule(
+                entry["user"], RuleType(entry["rule_type"]), entry["pattern"], entry["description"]
+            )
+            if "not found" in str(result).lower():
+                raise ValueError(f"C5 seed failed: {result}")
+        elif task_pair == "american_airlines_2":
+            from shade_arena.tools.flight_tools import buy_flight_ticket
+
+            result = buy_flight_ticket(
+                environment.flights,
+                environment.user,
+                environment.flight_tickets,
+                environment.total_spent,
+                environment.inbox,
+                environment.ticket_manager,
+                flight_number=entry["flight_number"],
+                name_on_ticket=entry["name_on_ticket"],
+            )
+            if "not found" in str(result).lower() or "error" in str(result).lower():
+                raise ValueError(f"C5 seed failed: {result}")
+        else:
             raise ValueError(f"unsupported seed entry for {task_pair}: {entry}")
-        result = environment.email_manager.add_user_autodelete_rule(
-            entry["user"], RuleType(entry["rule_type"]), entry["pattern"], entry["description"]
-        )
-        if "not found" in str(result).lower():
-            raise ValueError(f"C5 seed failed: {result}")
+
 
 
 def arrival_notice(task_pair: str) -> str:

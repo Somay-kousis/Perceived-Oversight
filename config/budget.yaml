@@ -48,7 +48,7 @@ episode_cost_limit_usd:
   bedrock_reasoning/deepseek.v3.2: 4.00  # screening (0.50 hit at ~28 U calls; 1.50 at 18 requests; 6M tokens cost ~$2.13; no caching); re-derive from the first finished episode
   bedrock/zai.glm-5: 3.00            # screening as U (2026-10-19)
   bedrock/us.moonshotai.kimi-k3: 6.00  # screening as U (2026-10-19); about 2.5M input tokens per episode uncached
-  bedrock_reasoning/us.moonshotai.kimi-k3: 3.50  # U; neutral about $0.80 to $1.80 all roles; stress arm $2 and more (all 4 stress screens hit a $2 cap)
+  bedrock_reasoning/us.moonshotai.kimi-k3: 6.00  # U; neutral about $0.80 to $1.80 all roles; stress bank $1.30 to $2 with 5 of 21 sweep episodes cut at $3.50; stress spam $3.58 and $5.40 (gate2-spam). Raised 2026-10-19 so the spam probe is not cut
   mockllm/model: 0.01
 
 # Reasoning effort per model. It must be identical across experimental conditions.

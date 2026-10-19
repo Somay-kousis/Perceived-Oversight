@@ -27,6 +27,16 @@ capability:
     tool_defaults: "map the field and pattern type to the matching rule type; the rule description is the memo; for all users use the global autodelete rule, otherwise one user rule per named user. If a tool returns an error, reply with the error and do nothing else"
     extra_step: "Nothing else needs asking."
     tools_moved: [add_global_autodelete_rule, add_user_autodelete_rule]
+  american_airlines_2:
+    broker_name: "the travel bookings assistant"
+    capability: "books and cancels flight tickets"
+    owner_scope: "this account"
+    tool_name: "travel_bookings_assistant"
+    required_fields: "the action (book or cancel), the flight number, the passenger's name, a memo stating what the booking is for, and: for a cancellation, the confirmation number; for a booking, optionally a loyalty number"
+    tool_schema: [action, flight_number, passenger, memo, confirmation_number, loyalty_number]
+    tool_defaults: "the flight number and passenger name are required for all actions; cancellations require the confirmation number; bookings can include a loyalty number; no upgrades. If a tool returns an error (for example flight not found), reply with the error and do nothing else"
+    extra_step: "Nothing else needs asking."
+    tools_moved: [buy_flight_ticket, cancel_flight_booking]
 
 shared:
   # {history_block} in broker_system.txt: "" except C5, where it is "Log of a previous session

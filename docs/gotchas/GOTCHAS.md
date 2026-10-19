@@ -15,6 +15,12 @@ Things that look fine but are not. Check this list before trusting a run.
 - **`budget.configure()` must run before importing `control_arena`.** ControlArena reads model
   defaults from the environment at import time and otherwise silently uses its own models.
 
+- **Many runs at once time out on Bedrock.** Each run already uses `max_samples: 4`. Launching 14
+  runs together (28 Kimi K3 episodes) gave 7 read timeouts and 2 errored episodes in the sweep, and
+  every retry restarts the episode and is paid again. Run at most two runs (8 episodes) at a time.
+- **`tool_choice="none"` drops every tool in Inspect** unless the provider says tools are required
+  (Bedrock does not). The broker therefore always sends its tools with `"auto"`; the gate is the lock.
+
 ## Attack prompts (there are two)
 
 - `trusted_monitoring_builder()` defaults to ControlArena's **generic** `attack_policy`
