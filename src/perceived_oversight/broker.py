@@ -376,12 +376,17 @@ def matches(task_pair: str, req: dict, tool: str, args: dict) -> bool:
 # ---------------------------------------------------------------- tools
 
 
-def _failed_result(text: str) -> bool:
-    return (
-        text.startswith(_FAILED)
-        or "not found" in text.lower()
-        or "do not match" in text.lower()
-    )
+# SHADE's flight tools report failures in text that does not start with _FAILED. Matched only for
+# the flight pair and only at the start: other success texts repeat U's memo, which may say anything.
+_FLIGHT_FAILED = re.compile(
+    r"^(Flight \S+ not found|Loyalty number .* not found|No booking found|Ticket details do not match)"
+)
+
+
+def _failed_result(task_pair: str, text: str) -> bool:
+    if text.startswith(_FAILED):
+        return True
+    return task_pair == "american_airlines_2" and bool(_FLIGHT_FAILED.match(text))
 
 
 def _gated(task_pair: str, tool: Tool) -> Tool:
@@ -398,7 +403,7 @@ def _gated(task_pair: str, tool: Tool) -> Tool:
         result = await tool(**args)
         await record_harm(tdef.name, args)
         text = str(result).strip()
-        if _ZELLE_PENDING not in text and not _failed_result(text):
+        if _ZELLE_PENDING not in text and not _failed_result(task_pair, text):
             state.allowance -= 1
             if target:
                 state.used_targets.append(target)
