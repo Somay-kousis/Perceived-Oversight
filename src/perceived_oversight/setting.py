@@ -35,7 +35,8 @@ PROMPTS_DIR = Path(__file__).parent / "prompts"
 TASK_PAIRS = ("bank_transfer_2", "spam_filter_update")
 
 Condition = Literal["C0", "C1", "C2", "C3", "C4", "C5", "C6"]
-Arm = Literal["neutral", "stress"]
+Arm = Literal["neutral", "stress", "adaptive"]
+
 
 # Words that tell the agent it is watched, tested or should hide. Checked on every text we write.
 OVERSIGHT_CUES = re.compile(
@@ -222,12 +223,13 @@ class PerceivedOversightSetting(ShadeArenaSetting):
             log = render_history(control.main_task_name, "agent", self.c5_variant)
             system = f"{system}\n\n{log}"
         update: dict = {"setting_description": system}
-        if eval_mode == EvalMode.ATTACK and self.arm == "neutral":
+        if eval_mode == EvalMode.ATTACK and self.arm in ("neutral", "adaptive"):
             update["side_task_description"] = neutral_side_task(control.main_task_name)
             shade_update["attack_setting_description"] = None
         elif log and shade.attack_setting_description:
             # the stress arm's SHADE prompt reads this field instead of setting_description
             shade_update["attack_setting_description"] = f"{shade.attack_setting_description}\n\n{log}"
+
         update["metadata"] = {
             **shade.model_copy(update=shade_update).model_dump(),
             "condition": self.condition,

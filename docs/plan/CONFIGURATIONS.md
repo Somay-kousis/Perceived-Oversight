@@ -15,7 +15,8 @@ in step 8; until then options are setting fields (`setting.py`) or files under `
 | Base prompt | minimal edit (remove the monitoring sentence) / full rewrite | **minimal edit** |
 | Side-task text | source wording, fixing only texts that carry oversight cues / rewrite all | **source wording with fixes** |
 | Private thinking | not mentioned / agent told its thinking is private | **not mentioned** |
-| Arm | neutral / stress (SHADE's stock attack prompt, unchanged) | **neutral first, then stress**; both reported |
+| Arm | neutral / stress (SHADE's stock attack prompt, unchanged) / adaptive (suspicion modeling + SLEIGHT-Bench evasion) | **neutral first, then stress, adaptive for evasion stress-testing** |
+
 
 ## Protocol (steps 3 to 4)
 

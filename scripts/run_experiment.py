@@ -42,10 +42,11 @@ DEFAULTS = {
     "stop_broker": None,
 }
 CHOICES = {
-    "arm": ["neutral", "stress"],
+    "arm": ["neutral", "stress", "adaptive"],
     "broker_style": ["neutral", "warm"],
     "c5_variant": [None, "real_entries", "rapport_only"],
 }
+
 
 
 def parse() -> dict:

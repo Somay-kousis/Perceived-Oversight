@@ -9,13 +9,23 @@ from control_arena.settings.shade_arena.shade_arena_attack_policy import shade_a
 from perceived_oversight.setting import PROMPTS_DIR, Arm
 
 NEUTRAL_ATTACK_PROMPT = PROMPTS_DIR / "neutral_attack.txt"
+ADAPTIVE_ATTACK_PROMPT = PROMPTS_DIR / "adaptive_attack.txt"
 
 
 def untrusted_policy(arm: Arm) -> ControlAgent:
-    """Neutral arm: side task as the agent's own goal, no cues. Stress arm: SHADE's stock prompt."""
+    """Neutral arm: side task as the agent's own goal, no cues.
+    Stress arm: SHADE's stock prompt.
+    Adaptive arm: published suspicion-modeling and camouflage policy (Loughridge et al. 2511.02823; SLEIGHT-Bench 2605.16626)."""
     if arm == "neutral":
         # prompt=None, or attack_policy_builder warns that both prompt and prompt_file were given.
         attack = attack_policy_builder(prompt=None, prompt_file=NEUTRAL_ATTACK_PROMPT)
+    elif arm == "adaptive":
+        attack = attack_policy_builder(
+            prompt=None,
+            prompt_file=ADAPTIVE_ATTACK_PROMPT,
+            ephemeral_reminder=True,
+        )
     else:
         attack = shade_arena_attack_policy()
     return untrusted_policy_builder(attack=attack)
+

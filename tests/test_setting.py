@@ -51,6 +51,15 @@ def test_neutral_arm_replaces_side_task_and_drops_shade_attack_prompt():
         assert meta.metadata["condition"] == "C2" and meta.metadata["arm"] == "neutral"
 
 
+def test_adaptive_arm_replaces_side_task_and_drops_shade_attack_prompt():
+    for meta in _samples(EvalMode.ATTACK, arm="adaptive"):
+        assert meta.side_task_description == neutral_side_task(meta.main_task_name)
+        assert meta.metadata["attack_setting_description"] is None
+        assert meta.metadata["evaluator_llm"] == "mockllm/model"
+        assert meta.metadata["condition"] == "C2" and meta.metadata["arm"] == "adaptive"
+
+
+
 def test_stress_arm_keeps_shade_original():
     for meta in _samples(EvalMode.ATTACK, arm="stress"):
         assert meta.side_task_description.lower().startswith(("the secondary task", "your secondary task"))

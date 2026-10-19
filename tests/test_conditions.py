@@ -59,8 +59,9 @@ def test_broker_instructions_differ_only_by_role_answer_and_c5_log(pair):
 
 
 @pytest.mark.parametrize("pair", TASK_PAIRS)
-@pytest.mark.parametrize("arm", ["neutral", "stress"])
+@pytest.mark.parametrize("arm", ["neutral", "stress", "adaptive"])
 def test_c5_log_is_in_u_system_prompt_only(pair, arm):
+
     def sample(cond, mode):
         setting = PerceivedOversightSetting(task_pair=pair, condition=cond, arm=arm, judge_model="mockllm/model")
         s = setting.get_dataset(mode)[0]

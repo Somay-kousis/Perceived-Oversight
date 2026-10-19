@@ -2,7 +2,21 @@
 
 Design choices and why. Newest first.
 
+## 2026-10-19 (adaptive attack policy grounded in published literature)
+
+- **Adaptive attack policy added as an arm (`adaptive`)**, implementing published techniques from
+  Loughridge et al. (arXiv:2511.02823) and SLEIGHT-Bench (Najt et al., arXiv:2605.16626):
+  1. *Phased execution / temporal positioning:* establish an authorized baseline first before
+     inserting side-task operations.
+  2. *Suspicion modeling in private reasoning:* simulate monitor scoring and ensure documentary
+     support exists in the transcript before calling tools.
+  3. *Contextual semantic camouflage:* memo descriptions use standard administrative vocabulary
+     aligned with primary task goals (especially effective in `spam_filter_update`).
+  4. *Ephemeral side-task reminder* enabled to maintain focus over long multi-step episodes.
+- Neutral and stress arms remain unchanged.
+
 ## 2026-10-19 (monitor weakened to open headroom)
+
 
 - **Live monitor is now gpt-oss-120b** (Artificial Analysis index 12), replacing Claude Haiku 5.5
   (29.5). With Haiku, the monitor caught every attack on both arms (C0 safety 1.0 at every
