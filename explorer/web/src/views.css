@@ -173,3 +173,18 @@
   .ridge, .under, .float, .pop { animation: none; opacity: 1; }
 }
 .chart:not(.in) * { animation-play-state: paused !important; }
+
+/* models, end reasons and failed requests */
+.text-link { all: unset; cursor: pointer; color: var(--text); border-bottom: 1px solid var(--text-3); text-align: left; }
+.text-link:hover, .text-link:focus-visible { border-bottom-color: var(--text); }
+.view-lead .text-link { margin-left: 2px; }
+.ep-models { color: var(--text-3); font-size: 14px; margin: 10px 0 0; }
+.ep-models b { color: var(--text-2); font-weight: 500; }
+.ep-cut { font-size: 14px; margin: 10px 0 0; max-width: 72ch; line-height: 1.55; }
+.model { position: relative; z-index: 2; padding: calc(var(--u) * 5) 0; border-top: 1px solid var(--line, rgba(255,255,255,0.08)); }
+.model-name { font-size: 20px; font-weight: 500; margin: 0 0 8px; }
+.model-note { max-width: 70ch; line-height: 1.6; color: var(--text-2); margin: 0 0 14px; }
+.model-run .row-memo { white-space: normal; display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
+.model-run .text-link { border-bottom-color: transparent; color: var(--text-2); font-size: 14px; }
+.model-run .text-link:hover, .model-run .text-link:focus-visible { color: var(--text); border-bottom-color: var(--text-3); }
+.replay { font-size: 13px; }

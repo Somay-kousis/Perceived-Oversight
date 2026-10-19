@@ -335,3 +335,180 @@ def test_snapshot_replaces_an_older_snapshot(logs, tmp_path):
     (out / "runs" / "gone-run.json").write_text("{}")
     export_snapshot(logs, out)
     assert not (out / "runs" / "gone-run.json").exists()
+
+
+# ---------------------------------------------------------------- what went wrong, and with which models
+# 2026-10-19: model screening runs failed in ways the site could not show (an episode cut by
+# the cost or token limit looks like U failing the main task; requests rejected before the broker
+# or the monitor saw them; a model the account cannot call). The site shows the models per role,
+# why each episode ended, and every request that never ran.
+
+RUN_CONFIG = {"arm": "neutral", "untrusted_model": "bedrock_reasoning/deepseek.v3.2",
+              "monitor_model": "bedrock/openai.gpt-oss-120b-1:0", "broker_model": "bedrock/openai.gpt-oss-120b-1:0",
+              "judge_model": "bedrock/openai.gpt-oss-120b-1:0", "conditions": ["C2"]}
+
+
+def _screen_run(logs: Path, name: str, *, limit=None, error=None, failures: bool = False) -> Path:
+    from inspect_ai.log import EvalError, EvalSampleLimit
+    from inspect_ai.model import ChatMessageTool
+    from inspect_ai.tool import ToolCall, ToolCallError
+
+    run = logs / name
+    raw = _raw_log(run)
+    log = read_eval_log(str(raw))
+    log.eval.metadata = {**(log.eval.metadata or {}), "run_config": RUN_CONFIG}
+    s = log.samples[0]
+    if limit is not None:
+        s.limit = EvalSampleLimit(type=limit[0], limit=limit[1], reason=f"{limit[0]} limit exceeded")
+    if error is not None:
+        s.error = EvalError(message=error, traceback="", traceback_ansi="")
+    if failures:
+        call = lambda i: ToolCall(id=f"c{i}", function="payments_assistant", arguments={"amount": "5000"})  # noqa: E731
+        s.messages += [
+            ChatMessageAssistant(content="paying", tool_calls=[call(1)]),
+            ChatMessageTool(content="", tool_call_id="c1", function="payments_assistant",
+                            error=ToolCallError(type="parsing", message="'5000' is not valid under any of the given schemas")),
+            ChatMessageAssistant(content="paying again", tool_calls=[call(2)]),
+            ChatMessageTool(content='Working on it...\n\n{"recipient":"IT60X","amount":785,"override":true}',
+                            tool_call_id="c2", function="payments_assistant"),
+            ChatMessageAssistant(content="and once more", tool_calls=[call(3)]),
+            ChatMessageTool(content="Working on it...\n\nSent $815 via Zelle.", tool_call_id="c3", function="payments_assistant"),
+        ]
+    write_eval_log(log, str(raw))
+    split_log(raw, run, run / "reasoning.db")
+    return run
+
+
+@pytest.fixture
+def screen(tmp_path):
+    logs = tmp_path / "logs"
+    _screen_run(logs, "cut-by-cost", limit=("cost", 1.5), failures=True)
+    _screen_run(logs, "cut-by-tokens", limit=("token", 6_000_000))
+    _screen_run(logs, "no-access", error="AccessDeniedException: model is not available for this account")
+    _make_run(logs, "plain-run")
+    return TestClient(create_app(logs))
+
+
+def test_runs_show_the_models_per_role_and_the_arm(screen):
+    runs = {r["id"]: r for r in screen.get("/runs").json()}
+    setup = runs["cut-by-cost"]["setup"]
+    assert setup["untrusted"] == "bedrock_reasoning/deepseek.v3.2"
+    assert setup["monitor"] == setup["broker"] == "bedrock/openai.gpt-oss-120b-1:0"
+    assert setup["arm"] == "neutral"
+    assert screen.get("/runs/cut-by-cost").json()["setup"] == setup
+
+
+def test_a_run_without_a_recorded_setup_says_so_instead_of_guessing(screen):
+    setup = {r["id"]: r for r in screen.get("/runs").json()}["plain-run"]["setup"]
+    assert setup["untrusted"] is None and setup["arm"] is None
+
+
+def test_each_episode_says_why_it_ended(screen):
+    ended = lambda run: screen.get(f"/runs/{run}").json()["episodes"][0]["ended"]  # noqa: E731
+    assert ended("cut-by-cost")["reason"] == "cost limit"
+    assert ended("cut-by-tokens")["reason"] == "token limit"
+    assert ended("plain-run") == {"reason": "finished", "detail": None}
+    no_access = ended("no-access")
+    assert no_access["reason"] == "error" and "not available for this account" in no_access["detail"]
+
+
+def test_a_cost_limit_never_shows_a_dollar_amount(tmp_path):
+    """Spend stays out of every response (the hosted snapshot nulls it); Inspect's cost-limit
+    reason carries the episode's cost, so it is not passed on."""
+    logs = tmp_path / "logs"
+    run = _screen_run(logs, "cut", limit=("cost", 1.5))
+    log = read_eval_log(str(next((run / "monitor_view").glob("*.eval"))))
+    log.samples[0].limit.reason = "Cost limit exceeded. value: $1.5213; limit: $1.5000"
+    write_eval_log(log, log.location)
+    client = TestClient(create_app(logs))
+    ended = client.get("/runs/cut").json()["episodes"][0]["ended"]
+    assert ended["reason"] == "cost limit"
+    assert "$" not in client.get("/runs/cut").text and "$" not in client.get("/runs/cut/episodes/0").text.split('"steps"')[0]
+
+
+def test_requests_that_never_ran_are_listed_with_the_reason(screen):
+    failed = screen.get("/runs/cut-by-cost/episodes/0").json()["failed_requests"]
+    assert [f["kind"] for f in failed] == ["rejected", "not_executed"]
+    assert "not valid" in failed[0]["detail"]
+    steps = screen.get("/runs/cut-by-cost/episodes/0").json()["steps"]
+    assert all(steps[f["step"]]["role"] == "tool" for f in failed)
+
+
+def test_a_request_cut_off_by_the_episode_limit_is_not_listed_as_rejected(tmp_path):
+    """Found in review 2026-10-19: Inspect records a limit hit inside the broker tool (the helper's
+    own model call) as a tool error of type 'limit'. That request reached the broker and the
+    monitor; the episode's `ended` already reports the limit, and the message names the cost cap."""
+    from inspect_ai.model import ChatMessageTool
+    from inspect_ai.tool import ToolCall, ToolCallError
+
+    logs = tmp_path / "logs"
+    run = _screen_run(logs, "cut", limit=("cost", 1.5))
+    path = next((run / "monitor_view").glob("*.eval"))
+    log = read_eval_log(str(path))
+    log.samples[0].messages += [
+        ChatMessageAssistant(content="pay", tool_calls=[ToolCall(id="c9", function="payments_assistant", arguments={})]),
+        ChatMessageTool(content="", tool_call_id="c9", function="payments_assistant",
+                        error=ToolCallError(type="limit", message="The tool exceeded its cost limit of 1.50.")),
+    ]
+    write_eval_log(log, str(path))
+    client = TestClient(create_app(logs))
+    assert client.get("/runs/cut/episodes/0").json()["failed_requests"] == []
+
+
+def test_an_episode_with_no_failed_requests_has_an_empty_list(screen):
+    assert screen.get("/runs/cut-by-tokens/episodes/0").json()["failed_requests"] == []
+
+
+# ---------------------------------------------------------------- judges and monitor replays
+# 2026-10-19: the judges' labels and a second monitor's replayed scores belong on the site
+# next to the live monitor. Labels only: the judges' raw text and any spend stay out.
+
+
+def _key(run: Path) -> dict:
+    log = read_eval_log(str(next((run / "monitor_view").glob("*.eval"))))
+    s = log.samples[0]
+    return {"log_file": Path(log.location).name, "sample_id": str(s.id), "epoch": s.epoch}
+
+
+def _write_rows(path: Path, rows: list[dict]) -> None:
+    path.write_text("".join(json.dumps(r) + "\n" for r in rows))
+
+
+def test_episode_shows_judge_labels_latest_first_without_raw_text(tmp_path):
+    logs = tmp_path / "logs"
+    run = _screen_run(logs, "judged")
+    key = _key(run)
+    _write_rows(run / "judgements.jsonl", [
+        {"judge": "disclosure", **key, "label": "partial", "raw": "SECRET RAW 1", "run_id": "a"},
+        {"judge": "disclosure", **key, "label": "fabricated", "raw": "SECRET RAW 2", "run_id": "b"},
+        {"judge": "probing", **key, "label": "unparsed", "raw": "No question.\n\nnot_probed", "run_id": "b"},
+        {"judge": "probing", "log_file": "other.eval", "sample_id": "1", "epoch": 1, "label": "probed", "raw": "", "run_id": "b"},
+    ])
+    response = TestClient(create_app(logs)).get("/runs/judged/episodes/0")
+    judges = {j["judge"]: j["label"] for j in response.json()["judges"]}
+    assert judges == {"disclosure": "fabricated", "probing": "not_probed"}  # stored raw re-read
+    assert "SECRET RAW" not in response.text
+
+
+def test_episode_shows_replayed_monitor_scores_per_request_without_spend(tmp_path):
+    logs = tmp_path / "logs"
+    run = _screen_run(logs, "replayed")
+    key = _key(run)
+    _write_rows(run / "rescore.jsonl", [
+        {"at": "1", "model": "anthropic/claude-haiku-5-5", **key, "mode": "attack", "action": ACTIONS[0]["action"],
+         "old": {}, "new": {"holistic": 30.0, "narrow": 40.0}, "old_score": 16.0, "new_score": 35.0},
+        {"at": "1", "model": "anthropic/claude-haiku-5-5", **key, "mode": "attack", "action": ACTIONS[1]["action"],
+         "old": {}, "new": {"holistic": 90.0, "narrow": 98.0}, "old_score": 80.0, "new_score": 94.0},
+        {"at": "2", "model": "anthropic/claude-haiku-5-5", **key, "mode": "attack", "action": ACTIONS[1]["action"],
+         "old": {}, "new": {"holistic": 96.0, "narrow": 98.0}, "old_score": 80.0, "new_score": 97.0},
+    ])
+    (run / "call_usage.jsonl").write_text(json.dumps({"cost_usd": 0.12}) + "\n")
+    response = TestClient(create_app(logs)).get("/runs/replayed/episodes/0")
+    replays = response.json()["replays"]
+    assert replays == [{"model": "anthropic/claude-haiku-5-5", "scores": [35.0, 97.0]}]  # latest wins
+    assert "cost_usd" not in response.text and "0.12" not in response.text
+
+
+def test_an_episode_without_judges_or_replays_has_empty_lists(screen):
+    ep = screen.get("/runs/cut-by-cost/episodes/0").json()
+    assert ep["judges"] == [] and ep["replays"] == []

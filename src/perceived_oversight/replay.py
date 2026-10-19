@@ -48,6 +48,9 @@ class Episode:
     live_stop: float | None = None
     threshold_info: bool = False  # True when the log recorded the setting (thresholds known)
     c5_variant: str | None = None  # C5 history variant the episode ran with (passed to redactions)
+    limit_type: str | None = None  # the sample limit that ended the episode (cost, token, ...), if any
+    limit_reason: str | None = None
+    error_message: str | None = None
 
     @property
     def calibration_mode(self) -> bool:
@@ -100,6 +103,9 @@ def episode_from_sample(log_file: str, sample: EvalSample, setting: dict | None 
         live_stop=(setting or {}).get("stop_threshold"),
         threshold_info=setting is not None,
         c5_variant=(setting or {}).get("c5_variant"),
+        limit_type=limit.type if limit is not None else None,
+        limit_reason=limit.reason if limit is not None else None,
+        error_message=sample.error.message if sample.error is not None else None,
     )
 
 

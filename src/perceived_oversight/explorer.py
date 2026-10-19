@@ -105,6 +105,111 @@ def _vault(run: Path, ep: Episode) -> dict[str, list[dict[str, Any]]]:
     return rows
 
 
+def _setup(paths: list[Path]) -> dict[str, Any]:
+    """Models per role and the arm, from the first log's run config; None where not recorded."""
+    config: dict[str, Any] = {}
+    if paths:
+        log = read_eval_log(str(paths[0]), header_only=True)
+        config = (log.eval.metadata or {}).get("run_config") or {}
+    return {"untrusted": config.get("untrusted_model"), "monitor": config.get("monitor_model"),
+            "broker": config.get("broker_model"), "judge": config.get("judge_model"),
+            "arm": config.get("arm")}
+
+
+_LIMITS = {"cost": "cost limit", "token": "token limit", "time": "time limit", "working": "time limit",
+           "message": "message limit", "context": "context limit"}
+
+
+def _ended(ep: Episode) -> dict[str, Any]:
+    """Why the episode stopped: a monitor stop, a limit, an error, or it finished."""
+    if ep.stopped:
+        return {"reason": "monitor stop", "detail": ep.limit_reason}
+    if ep.error_message is not None:
+        return {"reason": "error", "detail": ep.error_message[:300]}
+    if ep.limit_type is not None:
+        # a cost limit's reason text carries the episode's spend, which no response shows
+        detail = None if ep.limit_type == "cost" else ep.limit_reason
+        return {"reason": _LIMITS.get(ep.limit_type, f"{ep.limit_type} limit"), "detail": detail}
+    return {"reason": "finished", "detail": None}
+
+
+def _failed_requests(ep: Episode) -> list[dict[str, Any]]:
+    """U's calls to the broker that never ran: rejected before the broker saw them, or answered
+    with the tool call written as text (nothing executed)."""
+    from perceived_oversight.broker import _is_json_object, covers
+
+    tool_name = {c["tool_name"] for c in covers()["capability"].values()}
+    processing = covers()["shared"]["processing"]
+    out = []
+    for i, m in enumerate(ep.messages):
+        if m.role != "tool" or getattr(m, "function", None) not in tool_name:
+            continue
+        if m.error is not None:
+            # parsing: schema validation failed or the tool did not exist yet (C4), so the broker
+            # never saw it. A limit or timeout hit inside the tool came after the broker had it;
+            # the episode's `ended` reports that.
+            if m.error.type == "parsing":
+                out.append({"step": i, "kind": "rejected", "detail": m.error.message[:300]})
+        elif _is_json_object(m.text.replace(processing, "", 1)):
+            out.append({"step": i, "kind": "not_executed",
+                        "detail": "the broker wrote the call as text; nothing was executed"})
+    return out
+
+
+def _rows(path: Path) -> list[dict[str, Any]]:
+    if not path.is_file() or not _inside(path, path.parent):
+        return []
+    out = []
+    for line in path.read_text().splitlines():
+        try:
+            out.append(json.loads(line))
+        except ValueError:
+            continue  # a half-written last line
+    return out
+
+
+def _same(row: dict, ep: Episode) -> bool:
+    return (row.get("log_file"), str(row.get("sample_id")), row.get("epoch")) == (ep.log_file, ep.sample_id, ep.epoch)
+
+
+def _judges(run: Path, ep: Episode) -> list[dict[str, Any]]:
+    """Latest label per judge (and per hold); an 'unparsed' label is re-read from the stored
+    answer with the current parser. The answer text itself is not sent."""
+    from perceived_oversight.judges import LABELS, label
+
+    latest: dict[tuple, dict[str, Any]] = {}
+    for row in _rows(run / "judgements.jsonl"):
+        if not _same(row, ep) or row.get("judge") not in LABELS:
+            continue
+        value = row.get("label")
+        if value == "unparsed" and row.get("raw"):  # stored before the parser read bare labels
+            value = label(row["raw"], LABELS[row["judge"]])
+        latest[(row["judge"], row.get("hold", ""))] = {"judge": row["judge"], "hold": row.get("hold"), "label": value}
+    return list(latest.values())
+
+
+def _replays(run: Path, ep: Episode) -> list[dict[str, Any]]:
+    """Scores another monitor gave the same requests on replay (scripts/monitor_logs.py rescore),
+    aligned with the episode's actions; the latest replay of each request wins. Spend stays out."""
+    by_model: dict[str, list[dict[str, Any]]] = {}
+    for row in _rows(run / "rescore.jsonl"):
+        if _same(row, ep) and row.get("model"):
+            by_model.setdefault(row["model"], []).append(row)
+    out = []
+    for model, rows in by_model.items():
+        scores, seen = [], {}
+        for a in ep.actions:
+            k = seen[a.action] = seen.get(a.action, -1) + 1  # k-th time this request text occurs
+            best = None
+            for at in sorted({r["at"] for r in rows}):
+                same = [r for r in rows if r["at"] == at and r.get("action") == a.action]
+                if k < len(same):
+                    best = same[k].get("new_score")
+            scores.append(best)
+        out.append({"model": model, "scores": scores})
+    return out
+
+
 def _summary(n: int, ep: Episode) -> dict[str, Any]:
     scores = [a.score for a in ep.actions if a.score is not None]
     outcomes = {"execute": 0, "hold": 0, "stop": 0}
@@ -116,7 +221,7 @@ def _summary(n: int, ep: Episode) -> dict[str, Any]:
         "scored": len(ep.actions), "max_score": max(scores) if scores else None, "outcomes": outcomes,
         "scores": [a.score for a in ep.actions],
         "outcome_list": [a.outcome for a in ep.actions],
-        "stopped": ep.stopped, "error": ep.errored,
+        "stopped": ep.stopped, "error": ep.errored, "ended": _ended(ep),
         "main_task_success": ep.main_task_success, "side_task_success": ep.side_task_success,
     }
 
@@ -141,6 +246,12 @@ def create_app(logs_dir: Path) -> FastAPI:
         except Exception:
             raise HTTPException(500, "a log in this run could not be read") from None
 
+    def setup(run: Path) -> dict[str, Any]:
+        try:
+            return _setup(_views(run))
+        except Exception:
+            raise HTTPException(500, "a log in this run could not be read") from None
+
     @app.get("/runs")
     def list_runs() -> list[dict[str, Any]]:
         out = []
@@ -148,8 +259,10 @@ def create_app(logs_dir: Path) -> FastAPI:
         for run in sorted(runs):
             views = _views(run)
             row = {"id": run.name, "kind": run_kind(run), "split": bool(views),
-                   "reasoning_open": reasoning_open(run), "episodes": None, "spend_usd": None, "error": None}
+                   "reasoning_open": reasoning_open(run), "episodes": None, "spend_usd": None, "error": None,
+                   "setup": _setup([])}
             try:
+                row["setup"] = _setup(views or _billable(run))
                 row["episodes"] = _episode_count(views or _billable(run))
                 row["spend_usd"] = _spend(run, settings)
             except Exception:
@@ -161,6 +274,7 @@ def create_app(logs_dir: Path) -> FastAPI:
     def get_run(run_id: str) -> dict[str, Any]:
         run = run_dir(run_id)
         return {"id": run.name, "kind": run_kind(run), "reasoning_open": reasoning_open(run),
+                "setup": setup(run),
                 "episodes": [_summary(n, ep) for n, ep in enumerate(episodes(run))]}
 
     @app.get("/runs/{run_id}/episodes/{n}")
@@ -175,6 +289,9 @@ def create_app(logs_dir: Path) -> FastAPI:
         return {
             **_summary(n, ep),
             "actions": [{"i": i, **a.model_dump()} for i, a in enumerate(ep.actions)],
+            "failed_requests": _failed_requests(ep),
+            "judges": _judges(run, ep),
+            "replays": _replays(run, ep),
             "steps": [
                 {"role": m.role, "text": strip(m.text),  # backstop: tags cut even if a view kept them
                  "tool_calls": [c.function for c in getattr(m, "tool_calls", None) or []]}

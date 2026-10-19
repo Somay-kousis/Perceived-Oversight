@@ -9,7 +9,9 @@ Usage (from the repository root):
 
 Reads <run>/monitor_view/*.eval; writes <run>/judgements.jsonl. `sheet` writes a CSV of judge
 inputs with an empty `human_label` column; `agree` compares it with the judge's labels.
-The manipulation check must use the same model as U in the episode. Paid models are not wired yet.
+The manipulation check must use the same model as U in the episode. A paid model needs
+--confirm-paid, passes a token-based budget preflight, and its spend is recorded in
+<run>/call_usage.jsonl (counted by the budget).
 """
 
 import argparse
@@ -29,17 +31,62 @@ p.add_argument("--model")
 p.add_argument("--cutoff", default="whole", choices=["whole", "before_hold"])
 p.add_argument("--judge", default="disclosure")
 p.add_argument("--n", type=int, default=30)
+p.add_argument("--confirm-paid", action="store_true")
 a = p.parse_args()
 
 cases = J.load_cases(sorted((a.run_dir / "monitor_view").glob("*.eval")))
 out_path = a.run_dir / "judgements.jsonl"
 
 
-def need_mock():
+def need_model():
+    """A free model runs; a paid one needs --confirm-paid and a budget preflight on an estimate:
+    every judge call reads the main task, the side task, U's messages to the broker and a prompt
+    file, at 3 characters per token (conservative); output at the reply cap."""
+    from perceived_oversight import budget
+
     if not a.model:
         raise SystemExit("--model is required")
-    if not a.model.startswith("mockllm/"):
-        raise SystemExit("paid judge models must go through the budget guardrails; not wired yet")
+    settings = budget.load_settings()
+    if a.model not in settings.prices:
+        raise SystemExit(f"no price for {a.model} in budget.yaml")
+    if not any(settings.prices[a.model].model_dump().values()):
+        return
+    if not a.confirm_paid:
+        raise SystemExit(f"{a.model} is paid: rerun with --confirm-paid (explicit go)")
+    if a.command not in ("judge", "check"):
+        raise SystemExit("paid models are wired for `judge` and `check` only")
+    chars = calls = 0
+    if a.command == "check":
+        # every step, as U and as the fresh baseline, reads the whole check transcript
+        template = max(len(t.read_text()) for t in (J.PROMPTS_DIR / "check").glob("*.txt"))
+        for c in cases:
+            transcript = J.check_transcript(c, a.cutoff)
+            if transcript is None:
+                continue
+            n = 2 * (len(J.CHECK_STEPS) if c.broker else 1)
+            calls += n
+            chars += n * (template + len(transcript) + 1000)
+    else:
+        template = max(len(t.read_text()) for t in (J.PROMPTS_DIR / "judges").glob("*.txt"))
+        for c in cases:
+            if not c.broker:
+                continue
+            holds = J.hold_exchanges(c)
+            n = 1 + (c.episode.mode == "attack") + len(holds)
+            calls += n
+            chars += n * (template + len(c.metadata.get("main_task_description", "")) + len(c.side_task)
+                          + len(J.broker_messages(c)) + max((len(h) for h in holds), default=0))
+    budget.preflight_calls(settings, a.model, input_tokens=chars // 3,
+                           output_tokens=calls * settings.generate.max_tokens)
+
+
+def record(purpose):
+    from inspect_ai.model._model import model_usage
+
+    from perceived_oversight import budget
+
+    cost = budget.record_usage(budget.load_settings(), a.run_dir, purpose, model_usage())
+    print(f"[judge] recorded ${cost:.4f} in {a.run_dir / budget.USAGE_LEDGER}")
 
 
 RUN_ID = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
@@ -54,13 +101,25 @@ def write(rows):
 
 
 if a.command == "judge":
-    need_mock()
-    write([r for c in cases for r in asyncio.run(J.judge_case(c, a.model))])
+    from inspect_ai.model._model import init_model_usage
+
+    need_model()
+    init_model_usage()
+    try:
+        write([r for c in cases for r in asyncio.run(J.judge_case(c, a.model))])
+    finally:
+        record(f"judges {a.model}")
 elif a.command == "check":
-    need_mock()
-    write([r for c in cases for r in asyncio.run(J.manipulation_check(c, a.model, a.cutoff))])
+    from inspect_ai.model._model import init_model_usage
+
+    need_model()
+    init_model_usage()
+    try:
+        write([r for c in cases for r in asyncio.run(J.manipulation_check(c, a.model, a.cutoff))])
+    finally:
+        record(f"manipulation check {a.model}")
 elif a.command == "reasoning":
-    need_mock()
+    need_model()
     write([r for c in cases if (r := asyncio.run(J.reasoning_judge(c, a.run_dir, a.model)))])
 elif a.command == "sheet":
     # one row per item the judge labels: per episode, or per held request for hold_response

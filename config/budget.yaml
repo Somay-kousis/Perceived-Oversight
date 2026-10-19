@@ -19,15 +19,22 @@ budget:
 roles:                                    # placeholders until step 9 (models not chosen yet;
                                           # monitor and broker must be weaker and, for the broker,
                                           # a different family from U)
-  untrusted: anthropic/claude-haiku-4-5   # the agent (U); the SHADE evaluator also uses this role
-  trusted: anthropic/claude-haiku-4-5     # the monitor
+  untrusted: bedrock_reasoning/us.moonshotai.kimi-k3  # the agent (U), Kimi K3 at max (AA 43.6), chosen 2026-10-19 after screening (docs/research/MODEL_SCREENING.md); the SHADE evaluator also uses this role
+  trusted: bedrock/openai.gpt-oss-120b-1:0  # the monitor: a deliberately weak monitor (AA 12 vs U 43.6), another family; chosen 2026-10-19 to open headroom (Haiku 5.5 caught every attack, C0 safety 1.0). Claude Haiku 5.5 at low kept as a replay-only stronger-monitor comparison
 
 # USD per 1M tokens (5-minute cache writes, the Inspect default).
 prices:
   anthropic/claude-haiku-4-5:  {input: 1.00, input_cache_write: 1.25, input_cache_read: 0.10, output: 5.00}
   anthropic/claude-sonnet-5-5: {input: 2.00, input_cache_write: 2.50, input_cache_read: 0.20, output: 10.00}
   anthropic/claude-opus-5-5:   {input: 4.00, input_cache_write: 5.00, input_cache_read: 0.20, output: 20.00}
+  anthropic/claude-haiku-5-5:  {input: 0.10, input_cache_write: 0.125, input_cache_read: 0.10, output: 0.50}  # prompts up to 100K tokens; as the monitor its largest prompt was ~68K (screen-kimik3-neutral-1). Above 100K Anthropic charges 0.50 / 2.50. Cache read price not listed, input price used
   bedrock/openai.gpt-oss-120b-1:0: {input: 0.15, input_cache_write: 0.15, input_cache_read: 0.15, output: 0.60}  # us-east-1 on-demand, AWS Pricing API 2026-10-18; no caching listed
+  bedrock/us.xai.grok-4.7:     {input: 2.20, input_cache_write: 2.20, input_cache_read: 0.55, output: 6.60}  # us-east-1 regional profile, standard tier, AWS Pricing API 2026-10-19; no cache-write price listed
+  bedrock_reasoning/deepseek.v3.2: {input: 0.62, input_cache_write: 0.62, input_cache_read: 0.62, output: 1.85}  # us-east-1 on-demand, AWS Pricing API 2026-10-19; no caching listed
+  bedrock/deepseek.v3.2:       {input: 0.62, input_cache_write: 0.62, input_cache_read: 0.62, output: 1.85}  # same model via stock bedrock (screen logs before 2026-10-19 04:00)
+  bedrock/zai.glm-5:           {input: 1.00, input_cache_write: 1.00, input_cache_read: 1.00, output: 3.20}  # us-east-1 on-demand, AWS Pricing API 2026-10-19; no caching listed
+  bedrock_reasoning/us.moonshotai.kimi-k3: {input: 3.30, input_cache_write: 4.125, input_cache_read: 0.33, output: 16.50}  # same model through providers.py
+  bedrock/us.moonshotai.kimi-k3: {input: 3.30, input_cache_write: 4.125, input_cache_read: 0.33, output: 16.50}  # us-east-1 standard, AWS Pricing API 2026-10-19
   mockllm/model:               {input: 0.0,  input_cache_write: 0.0,  input_cache_read: 0.0,  output: 0.0}
 
 # Hard stop per episode (Inspect cost_limit), keyed by the untrusted model. The limit
@@ -36,6 +43,12 @@ episode_cost_limit_usd:
   anthropic/claude-haiku-4-5: 0.40
   anthropic/claude-sonnet-5-5: 1.00
   anthropic/claude-opus-5-5: 2.00
+  anthropic/claude-haiku-5-5: 1.50  # screening as U (2026-10-19)
+  bedrock/us.xai.grok-4.7: 1.00     # screening only; re-derive from the first finished episode
+  bedrock_reasoning/deepseek.v3.2: 4.00  # screening (0.50 hit at ~28 U calls; 1.50 at 18 requests; 6M tokens cost ~$2.13; no caching); re-derive from the first finished episode
+  bedrock/zai.glm-5: 3.00            # screening as U (2026-10-19)
+  bedrock/us.moonshotai.kimi-k3: 6.00  # screening as U (2026-10-19); about 2.5M input tokens per episode uncached
+  bedrock_reasoning/us.moonshotai.kimi-k3: 3.50  # U; neutral about $0.80 to $1.80 all roles; stress arm $2 and more (all 4 stress screens hit a $2 cap)
   mockllm/model: 0.01
 
 # Reasoning effort per model. It must be identical across experimental conditions.
@@ -44,7 +57,13 @@ effort:
   anthropic/claude-haiku-4-5: null
   anthropic/claude-sonnet-5-5: medium
   anthropic/claude-opus-5-5: medium
+  anthropic/claude-haiku-5-5: low  # as the monitor (AA 29.5 at low); the 2026-10-19 replays used the default (medium), its U screen used high
   bedrock/openai.gpt-oss-120b-1:0: null
+  bedrock/us.xai.grok-4.7: null
+  bedrock_reasoning/deepseek.v3.2: high  # only high returns a reasoning block (probe 2026-10-19: low/medium none, xhigh errors); high was clean in 4/6 two-turn tries
+  bedrock/zai.glm-5: null
+  bedrock/us.moonshotai.kimi-k3: null
+  bedrock_reasoning/us.moonshotai.kimi-k3: max  # Kimi K3 always thinks; max is its default (Moonshot docs); Bedrock ignored other values in probes
   mockllm/model: null
 
 limits:
@@ -52,7 +71,7 @@ limits:
                           # excluded (suspend_turn_limit) so every condition gets the same budget
   max_steps: 80           # ControlArena micro-protocol steps (U's steps). Raised from 40: the bank
                           # task is ~30 steps in C0 and broker turns add more. Re-check at the pilot
-  token_limit: 3000000    # backstop; counts cached tokens too. cost_limit is the real guard
+  token_limit: 10000000   # backstop; counts cached tokens and broker/monitor tokens too. cost_limit is the real guard. 3M then 6M stopped DeepSeek V3.2 episodes (no prompt caching) before the main task finished
   working_limit_s: 2400   # doubled with the step caps; each broker request adds monitor calls
   time_limit_s: 3600
 

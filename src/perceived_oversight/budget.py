@@ -260,11 +260,44 @@ def billable(log_path: str) -> bool:
     return Path(log_path.removeprefix("file://")).parent.name != "monitor_view"
 
 
+USAGE_LEDGER = "call_usage.jsonl"  # spend from paid calls outside an eval (replay, judges)
+
+
+def record_usage(settings: BudgetSettings, folder: Path, purpose: str, usage: dict[str, ModelUsage]) -> float:
+    """Append the cost of calls made outside an eval to `folder`/call_usage.jsonl, which
+    spent_usd counts. Returns the cost recorded."""
+    import json
+    from datetime import datetime, timezone
+
+    rows, total = [], 0.0
+    for model, u in usage.items():
+        cost = usage_cost(settings, model, u)
+        total += cost
+        rows.append({"at": datetime.now(timezone.utc).isoformat(), "purpose": purpose, "model": model,
+                     "input_tokens": u.input_tokens, "output_tokens": u.output_tokens, "cost_usd": cost})
+    Path(folder).mkdir(parents=True, exist_ok=True)
+    with (Path(folder) / USAGE_LEDGER).open("a") as f:
+        for r in rows:
+            f.write(json.dumps(r) + "\n")
+    return total
+
+
+def _ledger_spend(settings: BudgetSettings) -> float:
+    import json
+
+    total = 0.0
+    for ledger in settings.logs_dir.rglob(USAGE_LEDGER):
+        for line in ledger.read_text().splitlines():
+            if line.strip():
+                total += float(json.loads(line)["cost_usd"])
+    return total
+
+
 def spent_usd(settings: BudgetSettings) -> float:
-    """Total spend recorded in every eval log under the logs directory."""
+    """Total spend recorded in every eval log under the logs directory, plus the call ledgers."""
     if not settings.logs_dir.exists():
         return 0.0
-    total = 0.0
+    total = _ledger_spend(settings)
     for info in list_eval_logs(str(settings.logs_dir), recursive=True):
         if not billable(info.name):
             continue
@@ -309,3 +342,26 @@ def preflight(settings: BudgetSettings, *, n_episodes: int, extra_models: Sequen
             "config/budget.local.yaml on purpose (copy budget.local.example.yaml if missing)."
         )
     return worst_case
+
+
+def preflight_calls(settings: BudgetSettings, model: str, *, input_tokens: int, output_tokens: int) -> float:
+    """Like `preflight`, for paid calls outside an episode (monitor replay, judges): refuse when
+    the estimated tokens, priced and multiplied for the worst case, could break a cap. Returns
+    the worst-case cost in USD."""
+    if model not in settings.prices:
+        raise ValueError(f"no price for {model!r}; add it to budget.yaml")
+    price = settings.prices[model]
+    if not any(price.model_dump().values()):
+        return 0.0
+    worst = (input_tokens * price.input + output_tokens * price.output) / 1_000_000
+    worst *= settings.budget.worst_case_multiplier
+    spent = spent_usd(settings)
+    cap = min(settings.budget.phase_cap_usd, settings.budget.hard_ceiling_usd)
+    print(f"[budget] {model}: ~{input_tokens:,} input + {output_tokens:,} output tokens "
+          f"= worst case ${worst:.2f} | spent ${spent:.2f}")
+    if spent + worst > cap:
+        raise BudgetExceededError(
+            f"worst case ${worst:.2f} + spent ${spent:.2f} exceeds the cap. Estimate fewer calls or "
+            "raise phase_cap_usd in config/budget.local.yaml on purpose."
+        )
+    return worst

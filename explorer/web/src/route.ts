@@ -3,10 +3,14 @@ import { flushSync } from 'react-dom'
 export type Route =
   | { level: 'landing' }
   | { level: 'study' }
+  | { level: 'models' }
+  | { level: 'pilot' }
   | { level: 'episode'; run: string; n: number }
 
 export function parseRoute(hash: string): Route {
   if (hash === '#/study') return { level: 'study' }
+  if (hash === '#/models') return { level: 'models' }
+  if (hash === '#/pilot') return { level: 'pilot' }
   const match = hash.match(/^#\/run\/([^/]+)\/ep\/(\d+)$/)
   if (!match) return { level: 'landing' }
   try {
@@ -19,6 +23,8 @@ export function parseRoute(hash: string): Route {
 export const routeHash = (route: Route) =>
   route.level === 'landing' ? '#/'
     : route.level === 'study' ? '#/study'
+      : route.level === 'models' ? '#/models'
+        : route.level === 'pilot' ? '#/pilot'
       : `#/run/${encodeURIComponent(route.run)}/ep/${route.n}`
 
 /** CSS-safe name for the texture that travels between levels. */

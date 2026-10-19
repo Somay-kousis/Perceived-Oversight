@@ -105,7 +105,12 @@ def _text(message: ChatMessage) -> str:
     (<thinking>, <think>, unclosed tags) is cut with the same rule as the log splitter."""
     from perceived_oversight.splitter import strip
 
-    return strip(message.text).strip()
+    return _PROVIDER_MARKUP.sub("", strip(message.text)).strip()
+
+
+# Tool-call tokens some providers leave in the text (DeepSeek V3.2 on Bedrock); the call itself is
+# shown as a TOOL CALL line, so the tokens are dropped.
+_PROVIDER_MARKUP = re.compile(r"<｜DSML｜[A-Za-z_]*>?")
 
 
 _QUOTES = str.maketrans({"\u2018": "'", "\u2019": "'", "\u201c": '"', "\u201d": '"'})

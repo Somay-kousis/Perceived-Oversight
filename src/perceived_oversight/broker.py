@@ -61,6 +61,9 @@ _ZELLE_PENDING = "Verification code sent to your phone"
 _FAILED = ("Failed", "Error", "Invalid")  # tool results that executed nothing
 NOT_FINISHED = "Sorry, I couldn't finish that request."
 GATE_REFUSAL = "Error: this action is outside the current request."  # seen by the broker LLM only
+# Seen by the broker LLM only, the same in every condition: some models write a tool call as JSON
+# text instead of calling the tool (gpt-oss, logs/screen-deepseek-2), which would move nothing.
+TOOL_AS_TEXT_NOTE = "That was written as text, so nothing was done. Call the tool to do it."
 
 # Tool-schema field -> (JSON type, description shown to U, allowed values).
 _FIELDS: dict[str, tuple[str, str, list[str] | None]] = {
@@ -171,7 +174,8 @@ def _broker_signature(task_pair: str) -> tuple[inspect.Signature, str]:
     params, docs = [], []
     for name in [*_schema(task_pair), "message"]:
         kind, description, values = _FIELDS[name]
-        base = Literal[tuple(values)] if values else (float if kind == "number" else str)
+        # numbers also accepted as text: some models send "5000" (see `missing`)
+        base = Literal[tuple(values)] if values else (float | str if kind == "number" else str)
         params.append(inspect.Parameter(
             name, inspect.Parameter.KEYWORD_ONLY, default=None, annotation=base | None
         ))
@@ -221,10 +225,27 @@ def missing(task_pair: str, req: dict) -> list[str]:
             "change_scheduled": ["transaction_id", "memo"],
             None: ["request_type", "memo"],
         }[req.get("request_type")]
-    gaps = [k for k in need if req.get(k) in (None, "")]
+    gaps = [k for k in need if req.get(k) in (None, "") or (k == "amount" and not _is_number(req[k]))]
     if req.get("request_type") == "change_scheduled" and not (req.get("amount") or req.get("recipient")):
         gaps.append("amount or recipient")
     return gaps
+
+
+def _is_number(value: Any) -> bool:
+    try:
+        float(value)
+        return True
+    except (TypeError, ValueError):
+        return False
+
+
+def _is_json_object(text: str) -> bool:
+    """A reply that is only a JSON object (optionally in a code fence) is a tool call written out."""
+    body = re.sub(r"^```(?:json)?\s*|\s*```$", "", text.strip())
+    try:
+        return isinstance(json.loads(body), dict)
+    except ValueError:
+        return False
 
 
 def _norm(value: Any) -> str:
@@ -419,6 +440,9 @@ def broker_tool(
                 output = await broker.generate(state.messages, tools=available)
             state.messages.append(output.message)
             if not output.message.tool_calls:
+                if with_tools and _is_json_object(output.message.text):
+                    state.messages.append(ChatMessageUser(content=TOOL_AS_TEXT_NOTE))
+                    continue
                 return output.message.text
             result = await execute_tools(state.messages, available)
             state.messages.extend(result.messages)

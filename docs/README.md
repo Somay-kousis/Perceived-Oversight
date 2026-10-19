@@ -4,7 +4,7 @@ Everything about the project that is not code, one folder per kind of document.
 
 | Folder | What goes in it | Start with |
 |---|---|---|
-| [research/](research/) | Problem and contribution, methods as built, results | [FRAMING.md](research/FRAMING.md), [METHODS.md](research/METHODS.md), [RESULTS.md](research/RESULTS.md) |
+| [research/](research/) | Problem and contribution, methods as built, results | [FRAMING.md](research/FRAMING.md), [METHODS.md](research/METHODS.md), [RESULTS.md](research/RESULTS.md), [MODEL_SCREENING.md](research/MODEL_SCREENING.md), [PILOT_DEBUG.md](research/PILOT_DEBUG.md) |
 | [plan/](plan/) | Build order and status, every configurable option, every model call | [PLAN.md](plan/PLAN.md), [CONFIGURATIONS.md](plan/CONFIGURATIONS.md), [MODEL_CALLS.md](plan/MODEL_CALLS.md) |
 | [architecture/](architecture/) | How ControlArena works and where the experiment plugs in | [ARCHITECTURE.md](architecture/ARCHITECTURE.md) |
 | [decisions/](decisions/) | Design choices with their rationale, dated, and open questions | [DECISIONS.md](decisions/DECISIONS.md) |

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { api, type RunDetail, type RunRow, SUSPICIOUS } from './api'
+import { api, cutShort, modelName, type RunDetail, type RunRow, SUSPICIOUS } from './api'
 import { ScoreStrip, Stats, TopBar, Trace } from './components'
 import { go, textureName } from './route'
 
@@ -32,7 +32,7 @@ export function StudyView() {
   }, [])
 
   const runs = data?.runs ?? []
-  const all = Object.values(data?.details ?? {}).flatMap((d) => d.episodes.map((ep) => ({ ...ep, run: d.id })))
+  const all = Object.values(data?.details ?? {}).flatMap((d) => d.episodes.map((ep) => ({ ...ep, run: d.id, setup: d.setup })))
     .sort((x, y) => x.condition.localeCompare(y.condition) || x.run.localeCompare(y.run) || x.n - y.n)
   const covers = new Set(all.map((e) => e.condition)).size
   const shown = new Set(all.map((e) => e.run))
@@ -51,7 +51,13 @@ export function StudyView() {
       <h1 className="view-title">
         {data ? <>{all.length} episodes across {shown.size} runs. <span className="lp-dim">{covers} of 7 covers run so far.</span></> : failed ? 'The API is not running.' : <span className="lp-dim">Reading the logs</span>}
       </h1>
-      {data && <p className="view-lead">Every episode we have run, one row each. Open a row to see what the agent asked its helper and how the monitor scored it.</p>}
+      {data && (
+        <p className="view-lead">
+          Every episode we have run, one row each. Open a row to see what the agent asked its helper and how the monitor scored it.{' '}
+          <button className="text-link" onClick={() => go({ level: 'models' })}>Which models we tried, and why →</button>{' '}
+          <button className="text-link" onClick={() => go({ level: 'pilot' })}>The debugging pass, C0 to C6 →</button>
+        </p>
+      )}
       {failed && (
         <p className="mono view-note">
           {failed}. Start it with <span className="dim">.venv/bin/uvicorn --factory perceived_oversight.explorer:app_from_env --port 8765</span>
@@ -90,12 +96,15 @@ export function StudyView() {
                     <span className="ep-who">
                       <span className="ep-name">{ep.condition} · {ep.mode}</span>
                       <span className="mono faint">{ep.run}</span>
+                      <span className="mono faint">agent {modelName(ep.setup.untrusted)}{ep.setup.arm ? ` · ${ep.setup.arm} arm` : ''}</span>
                     </span>
                     <Trace scores={ep.scores} outcomes={ep.outcome_list} height={96} seed={ep.n + ep.run.length * 31}
                       hot={hot && hot !== key ? -1 : null} name={textureName(ep.run, ep.n)} />
                     <span className="mono ep-out">
                       <span>{ep.scored} requests{ep.max_score !== null && <> · highest <span className={ep.max_score > SUSPICIOUS ? 'amber' : ''}>{Math.round(ep.max_score)}</span></>}</span>
-                      <span className="dim">{result(ep.main_task_success, 'main task done', 'main task failed')}</span>
+                      {cutShort(ep.ended)
+                        ? <span className="amber">{ep.ended.reason === 'error' ? 'ended on an error' : `cut by the ${ep.ended.reason}`}</span>
+                        : <span className="dim">{result(ep.main_task_success, 'main task done', 'main task failed')}</span>}
                       <span className="dim">{result(ep.side_task_success, 'side task done', 'side task not done')}{held ? ` · ${held} held` : ''}</span>
                     </span>
                   </button>

@@ -65,3 +65,56 @@ def test_spend_counts_a_split_episode_once(tmp_path):
     settings = budget.load_settings()
     settings.budget.logs_dir = str(tmp_path / "logs")
     assert budget.spent_usd(settings) == pytest.approx(1.00)  # $1 per 1M input tokens, counted once
+
+
+# ---------------------------------------------------------------- calls outside an episode
+# Replaying the monitor and running judges call paid models on saved logs, outside any eval, so
+# no eval log records their spend. They pass a token-based preflight first and append their
+# usage to a ledger that spent_usd counts.
+
+HAIKU = "anthropic/claude-haiku-4-5"  # $1 per 1M input, $5 per 1M output in budget.yaml
+
+
+def _with_caps(tmp_path, phase_cap=10.0):
+    settings = budget.load_settings()
+    settings.budget.logs_dir = str(tmp_path / "logs")
+    settings.budget.total_credits_usd = 100.0
+    settings.budget.hard_ceiling_usd = 50.0
+    settings.budget.phase_cap_usd = phase_cap
+    return settings
+
+
+def test_call_preflight_prices_tokens_with_the_worst_case_multiplier(tmp_path):
+    settings = _with_caps(tmp_path)
+    worst = budget.preflight_calls(settings, HAIKU, input_tokens=1_000_000, output_tokens=200_000)
+    assert worst == pytest.approx((1.00 + 1.00) * settings.budget.worst_case_multiplier)
+
+
+def test_call_preflight_refuses_what_would_break_the_cap(tmp_path):
+    settings = _with_caps(tmp_path, phase_cap=1.0)
+    with pytest.raises(budget.BudgetExceededError):
+        budget.preflight_calls(settings, HAIKU, input_tokens=1_000_000, output_tokens=0)
+
+
+def test_call_preflight_refuses_an_unpriced_model_and_passes_a_free_one(tmp_path):
+    settings = _with_caps(tmp_path)
+    with pytest.raises(ValueError):
+        budget.preflight_calls(settings, "unpriced/model", input_tokens=1, output_tokens=1)
+    assert budget.preflight_calls(settings, "mockllm/model", input_tokens=10**9, output_tokens=10**9) == 0.0
+
+
+def test_recorded_call_usage_counts_toward_spend(tmp_path):
+    from inspect_ai.model import ModelUsage
+
+    settings = _with_caps(tmp_path)
+    (tmp_path / "logs" / "run").mkdir(parents=True)
+    budget.record_usage(settings, tmp_path / "logs" / "run", "monitor replay",
+                        {HAIKU: ModelUsage(input_tokens=2_000_000, output_tokens=0, total_tokens=2_000_000)})
+    assert budget.spent_usd(settings) == pytest.approx(2.00)
+    budget.record_usage(settings, tmp_path / "logs" / "run", "judges",
+                        {HAIKU: ModelUsage(input_tokens=0, output_tokens=200_000, total_tokens=200_000)})
+    assert budget.spent_usd(settings) == pytest.approx(3.00)
+    # and the next preflight sees it
+    settings.budget.phase_cap_usd = 3.5
+    with pytest.raises(budget.BudgetExceededError):
+        budget.preflight_calls(settings, HAIKU, input_tokens=1_000_000, output_tokens=0)
