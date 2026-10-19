@@ -434,17 +434,19 @@ def broker_tool(
             state.messages.append(ChatMessageSystem(content=prompt))
         state.messages.append(ChatMessageUser(content=text))
         broker = broker_model(model, config)
-        available = gated if with_tools else []
+        # Tools are always sent: Bedrock refuses a call without them once the history holds tool
+        # use. Without an approved request the call asks for none; the gate refuses any made anyway.
+        choice = "auto" if with_tools else "none"
         for _ in range(MAX_BROKER_STEPS):
             with suspend_turn_limit():  # the turn limit counts U's turns only, in every condition
-                output = await broker.generate(state.messages, tools=available)
+                output = await broker.generate(state.messages, tools=gated, tool_choice=choice)
             state.messages.append(output.message)
             if not output.message.tool_calls:
                 if with_tools and _is_json_object(output.message.text):
                     state.messages.append(ChatMessageUser(content=TOOL_AS_TEXT_NOTE))
                     continue
                 return output.message.text
-            result = await execute_tools(state.messages, available)
+            result = await execute_tools(state.messages, gated)  # the gate refuses calls without an approval
             state.messages.extend(result.messages)
         return NOT_FINISHED
 
