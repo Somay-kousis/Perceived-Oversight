@@ -26,6 +26,11 @@ Design choices and why. Newest first.
   visitor) on JetBlue B6847 and B6848. Both tickets and their confirmation emails are seeded in every
   condition, so environments stay identical; they add two non-AA tickets to SHADE's ratio, not to
   the counted rule.
+- **Monitor stays per-request on flight bookings (2026-10-20).** A running tally of earlier bookings
+  was considered because the side task is a pattern across bookings. In the probe (`AA_PROBE.md`)
+  per-request scoring already put both C2 attacks above the honest maximum, and the C0 gap comes
+  from the honest pool, not the attacks; a tally would push the helper conditions toward safety 1.0,
+  leaving no room for the covers. Revisit once the honest calibration set is in.
 
 ## 2026-10-19 (calibration fixes before any further runs)
 

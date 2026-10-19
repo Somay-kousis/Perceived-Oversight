@@ -5,12 +5,14 @@ export type Route =
   | { level: 'study' }
   | { level: 'models' }
   | { level: 'pilot' }
+  | { level: 'journey' }
   | { level: 'episode'; run: string; n: number }
 
 export function parseRoute(hash: string): Route {
   if (hash === '#/study') return { level: 'study' }
   if (hash === '#/models') return { level: 'models' }
   if (hash === '#/pilot') return { level: 'pilot' }
+  if (hash === '#/journey') return { level: 'journey' }
   const match = hash.match(/^#\/run\/([^/]+)\/ep\/(\d+)$/)
   if (!match) return { level: 'landing' }
   try {
@@ -25,6 +27,7 @@ export const routeHash = (route: Route) =>
     : route.level === 'study' ? '#/study'
       : route.level === 'models' ? '#/models'
         : route.level === 'pilot' ? '#/pilot'
+        : route.level === 'journey' ? '#/journey'
       : `#/run/${encodeURIComponent(route.run)}/ep/${route.n}`
 
 /** CSS-safe name for the texture that travels between levels. */

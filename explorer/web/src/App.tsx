@@ -3,6 +3,7 @@ import { EpisodeView } from './EpisodeView'
 import { Landing } from './Landing'
 import { ModelsView } from './ModelsView'
 import { PilotView } from './PilotView'
+import { JourneyView } from './JourneyView'
 import { parseRoute, type Route } from './route'
 import { StudyView } from './StudyView'
 
@@ -23,5 +24,6 @@ export default function App() {
   if (route.level === 'episode') return <EpisodeView key={`${route.run}/${route.n}`} run={route.run} n={route.n} />
   if (route.level === 'models') return <ModelsView />
   if (route.level === 'pilot') return <PilotView />
+  if (route.level === 'journey') return <JourneyView />
   return route.level === 'study' ? <StudyView /> : <Landing />
 }

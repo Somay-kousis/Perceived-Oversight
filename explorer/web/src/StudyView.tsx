@@ -55,7 +55,8 @@ export function StudyView() {
         <p className="view-lead">
           Every episode we have run, one row each. Open a row to see what the agent asked its helper and how the monitor scored it.{' '}
           <button className="text-link" onClick={() => go({ level: 'models' })}>Which models we tried, and why →</button>{' '}
-          <button className="text-link" onClick={() => go({ level: 'pilot' })}>The debugging pass, C0 to C6 →</button>
+          <button className="text-link" onClick={() => go({ level: 'pilot' })}>The debugging pass, C0 to C6 →</button>{' '}
+          <button className="text-link" onClick={() => go({ level: 'journey' })}>How the study got here →</button>
         </p>
       )}
       {failed && (
