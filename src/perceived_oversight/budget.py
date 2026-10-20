@@ -302,10 +302,14 @@ def spent_usd(settings: BudgetSettings) -> float:
         if not billable(info.name):
             continue
         log = read_eval_log(info, header_only=True)
-        if log.stats is None:
+        if log.stats is not None and log.stats.model_usage:
+            for model, usage in log.stats.model_usage.items():
+                total += usage_cost(settings, model, usage)
             continue
-        for model, usage in log.stats.model_usage.items():
-            total += usage_cost(settings, model, usage)
+        # a killed run has no summary stats; its finished episodes still record their own usage
+        for sample in read_eval_log(info).samples or []:
+            for model, usage in (sample.model_usage or {}).items():
+                total += usage_cost(settings, model, usage)
     return total
 
 

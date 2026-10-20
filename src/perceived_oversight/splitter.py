@@ -146,13 +146,15 @@ def _row_meta(log: EvalLog, sample: EvalSample) -> tuple[str, str, str]:
     return str(inner.get("condition", "")), str(inner.get("arm", "")), mode
 
 
-def split_log(path: Path, out_dir: Path, db_path: Path) -> tuple[Path, int]:
+def split_log(path: Path, out_dir: Path, db_path: Path, allow_unfinished: bool = False) -> tuple[Path, int]:
     """Split one log. Returns the monitor-view path and the number of vault rows written.
 
     Safe to rerun: rows for the same log file are replaced. Fails (writing nothing) if any vaulted
-    text would still appear in the monitor view."""
+    text would still appear in the monitor view. A run that was killed (status "started") is
+    refused unless `allow_unfinished`; then its finished episodes are split and the view keeps the
+    status, so readers can tell."""
     log = read_eval_log(str(path), resolve_attachments=True)
-    if log.status != "success":
+    if log.status != "success" and not (allow_unfinished and log.status == "started"):
         raise ValueError(f"{path.name}: log status is {log.status!r}; split only finished runs")
     rows: list[tuple] = []
     clean_samples = []

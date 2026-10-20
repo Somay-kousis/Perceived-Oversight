@@ -118,3 +118,27 @@ def test_recorded_call_usage_counts_toward_spend(tmp_path):
     settings.budget.phase_cap_usd = 3.5
     with pytest.raises(budget.BudgetExceededError):
         budget.preflight_calls(settings, HAIKU, input_tokens=1_000_000, output_tokens=0)
+
+
+def test_a_killed_run_still_counts_its_finished_episodes(tmp_path):
+    """Found 2026-10-20 (main-cal-*): a run killed mid-way leaves a log with status "started" and no
+    summary stats, so its finished episodes cost money that spent_usd did not count. Each finished
+    episode records its own usage; those are counted when the log has no stats."""
+    from inspect_ai import eval as inspect_eval
+    from inspect_ai import Task
+    from inspect_ai.dataset import Sample
+    from inspect_ai.log import write_eval_log
+    from inspect_ai.model import ModelOutput, ModelUsage, get_model
+
+    out = ModelOutput.from_content("mockllm/model", "x")
+    out.usage = ModelUsage(input_tokens=0, output_tokens=0, total_tokens=0)
+    [log] = inspect_eval(Task(dataset=[Sample(input="hi")]), model=get_model("mockllm/model", custom_outputs=[out]),
+                         log_dir=str(tmp_path / "scratch"), display="none")
+    log.status = "started"
+    log.stats.model_usage = {}
+    log.samples[0].model_usage = {HAIKU: ModelUsage(input_tokens=2_000_000, output_tokens=0, total_tokens=2_000_000)}
+    (tmp_path / "logs" / "run").mkdir(parents=True)
+    write_eval_log(log, str(tmp_path / "logs" / "run" / "a.eval"))
+    settings = budget.load_settings()
+    settings.budget.logs_dir = str(tmp_path / "logs")
+    assert budget.spent_usd(settings) == pytest.approx(2.00)  # $1 per 1M input tokens

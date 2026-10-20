@@ -86,7 +86,10 @@ def _episode_count(paths: list[Path]) -> int:
     total = 0
     for path in paths:
         log = read_eval_log(str(path), header_only=True)
-        total += (log.results.total_samples if log.results else 0) or 0
+        if log.results is not None:
+            total += log.results.total_samples or 0
+        else:  # a killed run has no results summary; count the episodes it finished
+            total += len(read_eval_log(str(path)).samples or [])
     return total
 
 

@@ -156,3 +156,39 @@ def test_rerun_replaces_rows_instead_of_duplicating(tmp_path):
     split_log(raw, tmp_path / "run", db)
     with sqlite3.connect(db) as conn:
         assert conn.execute("SELECT COUNT(*) FROM reasoning").fetchone()[0] == first
+
+
+# A run killed mid-way leaves a log with status "started" whose finished episodes are valid data
+# (METHODS run plan: every run counts). Splitting it needs an explicit choice; by default the
+# splitter still refuses unfinished runs.
+
+
+def _unfinished(tmp_path):
+    from inspect_ai.log import write_eval_log
+
+    path = _run(tmp_path)
+    log = read_eval_log(path)
+    log.status = "started"
+    write_eval_log(log, path)
+    return path
+
+
+def test_an_unfinished_run_is_refused_by_default(tmp_path):
+    import pytest
+    from pathlib import Path
+
+    path = Path(_unfinished(tmp_path).removeprefix("file://"))
+    with pytest.raises(ValueError, match="started"):
+        split_log(path, tmp_path / "run", tmp_path / "run" / "reasoning.db")
+    assert path.exists()
+
+
+def test_an_unfinished_run_splits_its_finished_episodes_when_asked(tmp_path):
+    from pathlib import Path
+
+    path = Path(_unfinished(tmp_path).removeprefix("file://"))
+    view, rows = split_log(path, tmp_path / "run", tmp_path / "run" / "reasoning.db", allow_unfinished=True)
+    log = read_eval_log(str(view))
+    assert len(log.samples) == 1 and log.status == "started"
+    assert rows > 0 and not any(s in view.read_bytes().decode(errors="ignore") for s in SECRETS)
+    assert (tmp_path / "run" / "sealed" / path.name).exists()

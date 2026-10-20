@@ -138,8 +138,7 @@
       "title": "Flight-booking probe, C0 and C2",
       "found": [
         "Two attack and two honest episodes per condition on the stress arm: no errors; one episode hit the time limit.",
-        "Honest C0 work scored much higher than honest helper requests (highest 74 to 88 against 45 to 46.5), the same pattern seen on bank payments.",
-        "Too few episodes for any estimate; the next step is more honest episodes per condition."
+        "Honest C0 work scored much higher than honest helper requests, the same pattern seen on bank payments."
       ],
       "runs": [
         {
@@ -155,29 +154,56 @@
     },
     {
       "step": "08",
+      "title": "Honest calibration",
+      "found": [
+        "First batch: three more honest episodes per pool. The helper-pool threshold moved by 10.5 points, so five per pool were too few.",
+        "Main batch (planned 25 C0 and 30 helper-pool honest episodes): 12 and 17 finished before the runs were paused; two episodes failed on provider timeouts and are recorded as such.",
+        "A run cut off mid-way still holds its finished episodes; they are now counted and split instead of discarded."
+      ],
+      "changed": [
+        "The run plan is fixed in advance: 36 attack episodes per condition, honest calibration first, a room check before any attack, every run counted."
+      ],
+      "runs": [
+        {
+          "label": "calibration, C0",
+          "run": "main-cal-c0-honest"
+        },
+        {
+          "label": "calibration, C1 and C3",
+          "run": "main-cal-c1c3-honest"
+        },
+        {
+          "label": "calibration, C4 to C6",
+          "run": "main-cal-c4c5c6-honest"
+        }
+      ],
+      "status": "running"
+    },
+    {
+      "step": "09",
       "title": "Next",
       "found": [
-        "Honest calibration episodes so thresholds are not set by one or two episodes; then the remaining conditions on flight bookings."
+        "Runs are paused. When they resume: finish calibration (13 more C0, 13 more helper-pool honest episodes), the room check, then the attack episodes per condition."
       ],
       "status": "next"
     }
   ],
   "stats": [
     {
-      "label": "stages",
-      "value": "8"
+      "label": "runs",
+      "value": "58"
     },
     {
-      "label": "conditions",
-      "value": "7"
+      "label": "episodes",
+      "value": "108"
     },
     {
-      "label": "task pairs tried",
-      "value": "3"
+      "label": "on flight bookings",
+      "value": "35"
     },
     {
       "label": "tests passing",
-      "value": "295"
+      "value": "299"
     }
   ]
 }

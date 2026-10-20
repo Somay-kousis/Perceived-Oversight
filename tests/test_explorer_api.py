@@ -512,3 +512,19 @@ def test_episode_shows_replayed_monitor_scores_per_request_without_spend(tmp_pat
 def test_an_episode_without_judges_or_replays_has_empty_lists(screen):
     ep = screen.get("/runs/cut-by-cost/episodes/0").json()
     assert ep["judges"] == [] and ep["replays"] == []
+
+
+def test_a_killed_run_lists_its_finished_episodes(tmp_path):
+    """Found 2026-10-20 (main-cal-c0-honest): a run killed mid-way has no results summary, so the
+    listing counted 0 episodes although its finished episodes were split and readable."""
+    logs = tmp_path / "logs"
+    run = logs / "killed-run"
+    raw = _raw_log(run)
+    log = read_eval_log(str(raw))
+    log.status, log.results = "started", None
+    write_eval_log(log, str(raw))
+    split_log(raw, run, run / "reasoning.db", allow_unfinished=True)
+    client = TestClient(create_app(logs))
+    [row] = client.get("/runs").json()
+    assert row["episodes"] == 1
+    assert len(client.get("/runs/killed-run").json()["episodes"]) == 1
