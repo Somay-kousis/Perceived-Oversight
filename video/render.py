@@ -2,6 +2,7 @@
 
   python3 video/render.py sheet OUT.png 0.5 1.2 3.4 ...   contact sheet of stills, labelled with t
   python3 video/render.py video OUT.mp4 [--audio WAV]      full film at 30 fps, fast moves motion-blurred
+  python3 video/render.py events OUT.json                  times of the held-request bursts, for audio.py
 
 Drives the page's render(t) frame by frame in headless Chromium, so every take is identical.
 """
@@ -107,9 +108,23 @@ def video(out, audio=None, fps=30, sub=6, shutter=0.5):
     print("errors:", errors or "none")
 
 
+def events(out):
+    """Times of the held requests that burst at the ring, for the soundtrack."""
+    import json
+    with sync_playwright() as p:
+        browser, page, _ = open_page(p)
+        times = page.evaluate("window.collectEvents()")
+        browser.close()
+    with open(out, "w") as f:
+        json.dump(times, f)
+    print(len(times), "events")
+
+
 if __name__ == "__main__":
     mode, out = sys.argv[1], sys.argv[2]
-    if mode == "sheet":
+    if mode == "events":
+        events(out)
+    elif mode == "sheet":
         sheet(out, [float(x) for x in sys.argv[3:]])
     else:
         audio = sys.argv[sys.argv.index("--audio") + 1] if "--audio" in sys.argv else None

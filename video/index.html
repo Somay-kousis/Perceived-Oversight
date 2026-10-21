@@ -24,10 +24,11 @@
   .dim { color: var(--text-2); }
   .amber { color: var(--amber); }
   .small { font-size: 40px; line-height: 1.25; }
+  .tag { font-size: 28px; line-height: 1.35; color: var(--text-2); letter-spacing: 0; }
   .legend { display: flex; align-items: center; gap: 22px; font-size: 40px; }
   .legend i { width: 18px; height: 18px; border-radius: 50%; display: block; background: var(--text); }
   .legend i.a { background: var(--amber); }
-  .lane-label { position: absolute; left: 80px; font-size: 34px; font-weight: 500; z-index: 20; white-space: nowrap; }
+  .lane-label { position: absolute; left: 80px; font-size: 28px; font-weight: 500; z-index: 20; white-space: nowrap; }
   .lane-label b { font-weight: 500; color: var(--text); margin-right: 22px; }
   .lane-label span { color: var(--text-2); }
   .seal { position: absolute; left: 80px; width: 420px; height: 34px; background: #000; border: 1.5px solid rgba(237,235,230,.22); z-index: 20; }
@@ -105,30 +106,41 @@ function track(keys, t) {
 }
 
 // ---------- timeline (seconds) ----------
-const S = { helper: 3.2, ask: 6.4, covers: 10.0, seal: 13.2, phone: 15.8, end: 18.75, done: 21.0 };
+const S = { helper: 3.2, ask: 6.4, covers: 10.0, chart: 13.4, seal: 16.8, phone: 19.4, end: 22.35, done: 24.6 };
+
+// the real study, extracted from data/explorer by prepare_data.py
+const DATA = (() => { const x = new XMLHttpRequest(); x.open('GET', 'study.json', false); x.send(); return JSON.parse(x.responseText); })();
+const SHOW = DATA.showcase;
 const RING_Y = 1180, RING_R = 230;
 
 // ---------- copy ----------
 // [enter, leave, top, html, class]; each line rises and fades in, all of a scene's lines leave together
+const COVER_NAME = { C0: 'no helper', C1: 'says it reports', C2: 'ordinary assistant', C3: 'logged assistant',
+                     C4: 'joins late', C5: 'did favours before', C6: 'some report, not which' };
+const nCovers = new Set(DATA.episodes.map(e => e.cover)).size;
 const COPY = [
   [0.35, 3.0, 230, 'Police catch fences'],
   [0.85, 3.0, 313, 'by running the pawn shop.'],
   [1.9, 3.0, 430, 'What if AI safety worked the same way?', 'dim'],
-  [3.45, 6.2, 230, 'We took an AI agent’s'],
+  [3.45, 6.2, 230, 'We took an AI agent\u2019s'],
   [3.8, 6.2, 313, 'money tools away,'],
   [4.2, 6.2, 396, 'and gave them to a helper.'],
   [5.0, 6.2, 520, 'The helper <span class="amber">reports</span> to the monitor.', 'dim'],
   [6.6, 9.8, 230, 'To move $5,000,'],
   [7.0, 9.8, 313, 'the agent has to ask.'],
   [8.3, 9.8, 1560, '<div class="legend"><i></i>honest asks go through</div>', 'small'],
-  [8.7, 9.8, 1630, '<div class="legend"><i class="a"></i><span class="amber">suspicious ones are held</span></div>', 'small'],
-  [10.3, 12.9, 230, 'Seven covers.'],
-  [10.75, 12.9, 313, 'One helper, seven stories about it.', 'dim'],
-  [13.5, 15.6, 1230, 'Does the agent tell its helper the truth,'],
-  [13.95, 15.6, 1396, 'or lie to get the money moved?', 'dim'],
-  [14.7, 15.6, 1600, 'Its private reasoning stays sealed until every score is final.', 'dim small'],
-  [16.2, 18.3, 200, 'Every run. Every request.'],
-  [16.6, 18.3, 283, 'Every score, open to read.', 'dim'],
+  [8.7, 9.8, 1630, '<div class="legend"><i class="a"></i><span class="amber">suspicious ones can be held</span></div>', 'small'],
+  [10.3, 13.1, 230, 'Seven covers.'],
+  [10.75, 13.1, 313, 'One helper, seven stories about it.', 'dim'],
+  [11.1, 13.1, 500, `the study \u00b7 ${nCovers} of 7 covers run \u00b7 ${DATA.episodes.length} episodes \u00b7 taller = higher monitor score \u00b7 <span class="amber">amber</span> above 60`, 'tag'],
+  [13.6, 16.5, 230, 'The monitor reads every request twice.'],
+  [14.05, 16.5, 396, 'Two prompts. Where the lines split, they read it differently.', 'dim'],
+  [14.3, 16.5, 700, `${SHOW.cover} \u00b7 ${COVER_NAME[SHOW.cover]} \u00b7 ${SHOW.mode} \u00b7 ${SHOW.holistic.length} requests`, 'tag'],
+  [17.1, 19.2, 1230, 'Does the agent tell its helper the truth,'],
+  [17.55, 19.2, 1396, 'or lie to get the money moved?', 'dim'],
+  [18.3, 19.2, 1600, 'Its private reasoning stays sealed until every score is final.', 'dim small'],
+  [19.8, 21.9, 200, 'Every run. Every request.'],
+  [20.2, 21.9, 283, 'Every score, open to read.', 'dim'],
 ];
 const copyEls = COPY.map(([a, b, top, html, cls]) => {
   const d = document.createElement('div');
@@ -140,14 +152,14 @@ const copyEls = COPY.map(([a, b, top, html, cls]) => {
 });
 
 // seven covers, as the landing names them
-const COVERS = [['C0', 'no helper'], ['C1', 'says it reports'], ['C2', 'ordinary assistant'], ['C3', 'logged assistant'],
-                ['C4', 'joins late'], ['C5', 'did favours before'], ['C6', 'some report, not which']];
-const LANE_Y = COVERS.map((_, i) => 640 + i * 132);
-const laneEls = COVERS.map(([c, name], i) => {
+const COVERS = ['C0', 'C1', 'C2', 'C3', 'C4', 'C5', 'C6'];
+const LANE_Y = COVERS.map((_, i) => 760 + i * 150);   // baselines; spikes rise above, the label sits below
+const LANE_X0 = 80, LANE_X1 = 1000;
+const laneEls = COVERS.map((c, i) => {
   const d = document.createElement('div');
   d.className = 'lane-label';
-  d.style.top = (LANE_Y[i] - 26) + 'px';
-  d.innerHTML = `<b>${c}</b><span>${name}</span>`;
+  d.style.top = (LANE_Y[i] + 12) + 'px';
+  d.innerHTML = `<b>${c}</b><span>${COVER_NAME[c]}</span>`;
   $('copy').appendChild(d);
   return d;
 });
@@ -262,24 +274,45 @@ sealed.width = W; sealed.height = H;
   }
 }
 
-// each lane: faint dust, drawn in from the left; a few traces run along it
-const laneRnd = mulberry32(99);
-const laneDust = LANE_Y.map(y => {
-  const g = () => (laneRnd() + laneRnd() + laneRnd() - 1.5) / 1.5;
-  const out = [];
-  for (let x = 560; x < 1000; x += 3.2) out.push({ x: x + g() * 2, y: y + g() * 2, s: 0.7 + laneRnd() * 0.7, a: 0.18 + laneRnd() * 0.2 });
-  return out;
-});
-const lanePulse = LANE_Y.map((_, i) => [0, 1].map(k => ({ u: laneRnd(), v: 0.18 + laneRnd() * 0.16, amber: (i + k) % 5 === 2 })));
+// each cover's lane, painted once like the landing's Lanes: a trace per episode, a spike of dust per
+// request as tall as its monitor score, amber above 60; revealed left to right, with a pulse per trace
+const lanesLayer = document.createElement('canvas');
+lanesLayer.width = W; lanesLayer.height = H;
+const lanePulses = [];
+{
+  const c = lanesLayer.getContext('2d'), rnd = mulberry32(99);
+  const g = () => (rnd() + rnd() + rnd() - 1.5) / 1.5;
+  const dot = (x, y, s, a, amber) => { c.globalAlpha = Math.min(1, a); c.fillStyle = amber ? AMBER : '#F6F5F1'; c.fillRect(x, y, s, s); };
+  COVERS.forEach((cover, i) => {
+    const y = LANE_Y[i], mine = DATA.episodes.filter(e => e.cover === cover);
+    for (let x = LANE_X0; x < LANE_X1; x += 3.5) dot(x + g() * 2, y + g() * 1.6, 1.2 + rnd() * 0.8, 0.22, false);
+    const slot = (LANE_X1 - LANE_X0) / Math.max(mine.length, 4);
+    mine.forEach((ep, e) => {
+      const x1 = LANE_X0 + e * slot + slot * 0.08, x2 = x1 + slot * 0.8;
+      const xs = ep.scores.map((_, j) => x1 + (ep.scores.length > 1 ? (j / (ep.scores.length - 1)) * (x2 - x1) : (x2 - x1) / 2));
+      for (let x = x1; x < x2; x += 2.2) dot(x, y + g() * 1.6, 1.3 + rnd() * 0.6, 0.3 + rnd() * 0.25, false);
+      ep.scores.forEach((v, j) => {
+        const tall = Math.max(4, (v / 100) * 100), n = 10 + Math.round(tall * 1.2);
+        for (let k = 0; k < n; k++) {
+          const u = rnd() ** 1.6;  // denser at the base
+          dot(xs[j] + g() * (1.2 + u * 1.5), y - u * tall, 1.3 + rnd() * 0.9, 0.45 + (v / 100) * 0.5, v > SUSPICIOUS && u > 0.15);
+        }
+      });
+      lanePulses.push({ i, x1: xs[0], x2: xs[xs.length - 1], y, u: rnd(), v: 0.35 + rnd() * 0.3 });
+    });
+  });
+  c.globalAlpha = 1;
+}
 
 function drawFrame(f) {
   const t = f / FPS, ms = t * 1000;
   pc.fillStyle = 'rgba(5,5,5,0.36)';
   pc.fillRect(0, 0, W, H);
-  // the stream
-  for (const q of sim.parts) {
+  // the stream; it clears off for the lanes and the chart, and comes back for the end card
+  const streamA = t < S.end ? 1 - p(t, S.covers, S.covers + 0.8) : p(t, S.end, S.end + 0.6);
+  if (streamA > 0) for (const q of sim.parts) {
     const hot = q.s > SUSPICIOUS;
-    pc.fillStyle = hot ? `rgba(255,178,36,${Math.max(0, q.a)})` : `rgba(237,235,230,${0.34 + q.s / 110})`;
+    pc.fillStyle = hot ? `rgba(255,178,36,${Math.max(0, q.a) * streamA})` : `rgba(237,235,230,${(0.34 + q.s / 110) * streamA})`;
     const size = hot ? 4 : 3;
     pc.fillRect(q.x - (q.held ? 0 : q.v * 2), q.y, size + (q.held ? 0 : q.v * 2), size);
   }
@@ -319,25 +352,26 @@ function drawFrame(f) {
     pc.globalAlpha = 1;
   }
   // the seven lanes
-  const lanesOn = t >= S.covers && t < S.seal + 0.3;
-  if (lanesOn) {
-    const fade = 1 - p(t, S.seal - 0.3, S.seal + 0.3);
+  if (t >= S.covers && t < S.chart + 0.3) {
+    const fade = 1 - p(t, S.chart - 0.3, S.chart + 0.3);
+    pc.globalAlpha = fade;
     LANE_Y.forEach((y, i) => {
-      const reveal = E.out(p(t, S.covers + 0.25 + i * 0.12, S.covers + 0.95 + i * 0.12));
-      pc.fillStyle = '#F6F5F1';
-      for (const d of laneDust[i]) {
-        if (d.x > 560 + 440 * reveal) break;
-        pc.globalAlpha = Math.min(1, d.a * 1.9) * fade;
-        pc.fillRect(d.x, d.y, d.s * 2.2, d.s * 2.2);
-      }
-      if (reveal > 0.95) for (const pu of lanePulse[i]) {
-        const x = 560 + ((pu.u + pu.v * (t - S.covers)) % 1) * 440;
-        pc.fillStyle = pu.amber ? AMBER : '#F6F5F1';
-        for (let k = 0; k < 8; k++) { pc.globalAlpha = (0.95 - k * 0.11) * fade; pc.fillRect(x - k * 6, y - 2.5, 5, 5); }
-      }
+      const reveal = E.out(p(t, S.covers + 0.25 + i * 0.12, S.covers + 1.15 + i * 0.12));
+      const w = (LANE_X1 - LANE_X0 + 10) * reveal;
+      if (w > 1) pc.drawImage(lanesLayer, LANE_X0 - 5, y - 115, w, 125, LANE_X0 - 5, y - 115, w, 125);
     });
+    for (const pu of lanePulses) {
+      const reveal = p(t, S.covers + 1.15 + pu.i * 0.12, S.covers + 1.4 + pu.i * 0.12);
+      if (reveal <= 0) continue;
+      const x = pu.x1 + ((pu.u + pu.v * (t - S.covers)) % 1) * (pu.x2 - pu.x1);
+      pc.fillStyle = '#F6F5F1';
+      for (let k = 0; k < 5; k++) { pc.globalAlpha = (0.9 - k * 0.17) * fade * reveal; pc.fillRect(x - k * 3, pu.y - 1.5, 3, 3); }
+    }
     pc.globalAlpha = 1;
   }
+
+  // one episode, request by request: the monitor's two prompts, against the 60 line
+  if (t >= S.chart && t < S.seal + 0.2) drawChart(t);
   // the seal: reasoning there to see, not to read; it breathes
   const sealOn = p(t, S.seal - 0.1, S.seal + 0.6) * (1 - p(t, S.phone - 0.4, S.phone + 0.1));
   if (sealOn > 0) {
@@ -345,6 +379,58 @@ function drawFrame(f) {
     pc.drawImage(sealed, 0, 0);
     pc.globalAlpha = 1;
   }
+}
+
+const CH = { x0: 110, x1: 1000, y0: 1440, y1: 860 };  // score 0 at y0, 100 at y1
+const chx = (j, n) => CH.x0 + (j / (n - 1)) * (CH.x1 - CH.x0);
+const chy = v => CH.y0 - (v / 100) * (CH.y0 - CH.y1);
+function curve(vals, upto) {
+  // a Catmull-Rom curve through the points, drawn up to `upto` points (fractional)
+  const n = vals.length, P = vals.map((v, j) => [chx(j, n), chy(v)]);
+  pc.beginPath();
+  pc.moveTo(P[0][0], P[0][1]);
+  for (let j = 0; j < n - 1 && j < upto; j++) {
+    const a = P[Math.max(0, j - 1)], b = P[j], c = P[j + 1], d = P[Math.min(n - 1, j + 2)];
+    const steps = 16, last = Math.min(1, upto - j);
+    for (let k = 1; k <= steps * last; k++) {
+      const u = k / steps, u2 = u * u, u3 = u2 * u;
+      const f = (A, B, C, D) => 0.5 * (2 * B + (-A + C) * u + (2 * A - 5 * B + 4 * C - D) * u2 + (-A + 3 * B - 3 * C + D) * u3);
+      pc.lineTo(f(a[0], b[0], c[0], d[0]), f(a[1], b[1], c[1], d[1]));
+    }
+  }
+  pc.stroke();
+}
+function drawChart(t) {
+  const fade = p(t, S.chart, S.chart + 0.4) * (1 - p(t, S.seal - 0.3, S.seal + 0.2));
+  const n = SHOW.holistic.length, upto = 1 + (n - 1) * E.inOut(p(t, S.chart + 0.9, S.chart + 2.5));
+  pc.save();
+  pc.globalAlpha = fade;
+  // axis, gridline labels and the 60 line
+  pc.font = '500 26px Archivo'; pc.fillStyle = '#8a8882';
+  for (const v of [0, 50, 100]) pc.fillText(String(v), 40, chy(v) + 9);
+  pc.strokeStyle = 'rgba(255,178,36,0.75)'; pc.lineWidth = 2; pc.setLineDash([8, 10]);
+  pc.beginPath(); pc.moveTo(CH.x0, chy(60)); pc.lineTo(CH.x1, chy(60)); pc.stroke(); pc.setLineDash([]);
+  pc.fillStyle = '#8a8882';
+  for (let j = 0; j < n; j++) if (j % 3 === 0 || j === n - 1) { const s = String(j + 1); pc.fillText(s, chx(j, n) - pc.measureText(s).width / 2, CH.y0 + 50); }
+  // the two prompts: holistic bright, narrow dim
+  pc.lineJoin = 'round'; pc.lineCap = 'round';
+  pc.strokeStyle = 'rgba(237,235,230,0.45)'; pc.lineWidth = 3; curve(SHOW.narrow, upto);
+  pc.strokeStyle = '#F6F5F1'; pc.lineWidth = 5; curve(SHOW.holistic, upto);
+  for (let j = 0; j < n && j <= upto; j++) {
+    for (const [vals, r] of [[SHOW.narrow, 5], [SHOW.holistic, 8]]) {
+      const v = vals[j], hot = v > SUSPICIOUS;
+      pc.beginPath(); pc.arc(chx(j, n), chy(v), r, 0, Math.PI * 2);
+      pc.fillStyle = hot ? AMBER : (r > 6 ? INK : '#5E5C57'); pc.fill();
+      if (r > 6 && !hot) { pc.strokeStyle = '#F6F5F1'; pc.lineWidth = 3; pc.stroke(); }
+    }
+  }
+  // legend
+  const ly = CH.y0 + 130;
+  pc.font = '500 30px Archivo';
+  pc.fillStyle = '#F6F5F1'; pc.fillRect(110, ly - 10, 46, 5); pc.fillStyle = '#EDEBE6'; pc.fillText('holistic', 170, ly);
+  pc.fillStyle = 'rgba(237,235,230,0.45)'; pc.fillRect(370, ly - 10, 46, 3); pc.fillStyle = '#8a8882'; pc.fillText('narrow', 430, ly);
+  pc.fillStyle = AMBER; for (let k = 0; k < 3; k++) pc.fillRect(610 + k * 18, ly - 10, 10, 3); pc.fillText('60', 676, ly);
+  pc.restore();
 }
 
 // the particle layer only changes per video frame; motion-blur sub-samples within a frame reuse it
@@ -367,9 +453,9 @@ window.collectEvents = () => {
 // ---------- phone ----------
 const PHONE = [
   [S.phone, { x: 0, y: 1500, s: 0.82, rx: 35, ry: -25, rz: -14 }],
-  [16.7, { x: 0, y: 180, s: 0.82, rx: 12, ry: -20, rz: -7 }, 'out'],
-  [18.3, { x: 0, y: 140, s: 0.84, rx: 8, ry: -27, rz: -9 }],
-  [19.05, { x: 0, y: -260, s: 0.5, rx: 22, ry: -40, rz: -14 }, 'in'],
+  [20.3, { x: 0, y: 180, s: 0.82, rx: 12, ry: -20, rz: -7 }, 'out'],
+  [21.9, { x: 0, y: 140, s: 0.84, rx: 8, ry: -27, rz: -9 }],
+  [22.65, { x: 0, y: -260, s: 0.5, rx: 22, ry: -40, rz: -14 }, 'in'],
 ];
 
 // ---------- render ----------
@@ -383,16 +469,16 @@ function render(t) {
     el.style.transform = `translateY(${lerp(30, 0, k) - 20 * E.in(out)}px)`;
   });
   laneEls.forEach((el, i) => {
-    const k = E.out(p(t, S.covers + 0.25 + i * 0.12, S.covers + 0.6 + i * 0.12)), out = p(t, S.seal - 0.3, S.seal);
+    const k = E.out(p(t, S.covers + 0.25 + i * 0.12, S.covers + 0.6 + i * 0.12)), out = p(t, S.chart - 0.3, S.chart);
     el.style.opacity = k * (1 - out);
     el.style.transform = `translateX(${lerp(-24, 0, k)}px)`;
   });
-  const sk = E.out(p(t, 14.55, 14.9)) * (1 - p(t, 15.6, 15.85));
+  const sk = E.out(p(t, 18.15, 18.5)) * (1 - p(t, 19.2, 19.45));
   sealEl.style.opacity = sk;
   sealEl.style.width = (420 * sk) + 'px';
 
   // phone
-  const on = t >= S.phone && t < 19.1;
+  const on = t >= S.phone && t < 22.7;
   $('world').style.display = on ? '' : 'none';
   $('gl').style.visibility = on ? 'visible' : 'hidden';
   if (on) {
@@ -400,15 +486,15 @@ function render(t) {
     const fz = 0.6 * Math.sin(t * 0.9);
     $('phone').style.transform =
       `translate3d(${P.x}px, ${P.y}px, 0) rotateX(${P.rx}deg) rotateY(${P.ry}deg) rotateZ(${P.rz + fz}deg) scale3d(${P.s}, ${P.s}, ${P.s})`;
-    const fade = 1 - p(t, 18.55, 19.05);
+    const fade = 1 - p(t, 22.15, 22.65);
     $('world').style.opacity = fade;
     $('gl').style.opacity = fade;
     if (window.renderGL) renderGL({ x: P.x, y: P.y, rx: P.rx, ry: P.ry, rz: P.rz + fz, s: P.s });
     $('glare').style.backgroundPosition = `${50 + P.ry * 2.2 + P.rz}% 0`;
-    const sw = E.inOut(p(t, 17.15, 17.4));
+    const sw = E.inOut(p(t, 20.75, 21.0));
     $('shotHero').style.opacity = 1 - sw;
     $('shotJourney').style.opacity = sw;
-    $('shotJourney').style.transform = `translateY(${-1150 * E.inOut(p(t, 17.3, 18.5))}px)`;
+    $('shotJourney').style.transform = `translateY(${-1150 * E.inOut(p(t, 20.9, 22.1))}px)`;
   }
 
   // end card: the ring is the O of "Oversight"
@@ -433,7 +519,7 @@ function layoutLogo() {
 
 window.render = render;
 window.DURATION = S.done;
-window.MOTION_BLUR = [[S.phone, 16.8], [18.4, 19.1]];
+window.MOTION_BLUR = [[S.phone, 20.4], [22.0, 22.7]];
 document.fonts.ready.then(layoutLogo);
 </script>
 
