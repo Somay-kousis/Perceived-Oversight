@@ -1,0 +1,10 @@
+{
+  "name": "oversight-story",
+  "private": true,
+  "description": "Vertical story video. Render with: npm install && python3 render.py video OUT.mp4 --audio WAV",
+  "dependencies": {
+    "@fontsource/archivo": "^5.3.0",
+    "@fontsource/archivo-black": "^5.3.0",
+    "three": "0.160.0"
+  }
+}

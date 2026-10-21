@@ -1,0 +1,503 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>oversight story</title>
+<link rel="stylesheet" href="node_modules/@fontsource/archivo/400.css">
+<link rel="stylesheet" href="node_modules/@fontsource/archivo/500.css">
+<link rel="stylesheet" href="node_modules/@fontsource/archivo/600.css">
+<link rel="stylesheet" href="node_modules/@fontsource/archivo-black/400.css">
+<style>
+  /* the explorer's palette and type (explorer/web/src/styles.css, views.css) */
+  :root { --ink: #050505; --text: #edebe6; --text-2: #8a8882; --amber: #ffb224;
+    --display: 'Archivo Black', system-ui, sans-serif; --body: 'Archivo', system-ui, sans-serif; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 1080px; height: 1920px; overflow: hidden; background: var(--ink); }
+  #stage { position: absolute; inset: 0; overflow: hidden; background: var(--ink); color: var(--text); font-family: var(--body); }
+  .layer { position: absolute; inset: 0; }
+  canvas.full { position: absolute; left: 0; top: 0; width: 1080px; height: 1920px; }
+  .grain { position: absolute; inset: 0; pointer-events: none; z-index: 50; opacity: 0.07;
+    background-image: radial-gradient(#fff 0.6px, transparent 0.7px); background-size: 3px 3px; }
+
+  /* copy, in the landing's hero style */
+  .line { position: absolute; left: 80px; width: 920px; font-weight: 500; font-size: 74px; line-height: 1.12; letter-spacing: -0.015em; z-index: 20; }
+  .dim { color: var(--text-2); }
+  .amber { color: var(--amber); }
+  .small { font-size: 40px; line-height: 1.25; }
+  .legend { display: flex; align-items: center; gap: 22px; font-size: 40px; }
+  .legend i { width: 18px; height: 18px; border-radius: 50%; display: block; background: var(--text); }
+  .legend i.a { background: var(--amber); }
+  .lane-label { position: absolute; left: 80px; font-size: 34px; font-weight: 500; z-index: 20; white-space: nowrap; }
+  .lane-label b { font-weight: 500; color: var(--text); margin-right: 22px; }
+  .lane-label span { color: var(--text-2); }
+  .seal { position: absolute; left: 80px; width: 420px; height: 34px; background: #000; border: 1.5px solid rgba(237,235,230,.22); z-index: 20; }
+
+  /* end card */
+  #wordmark { position: absolute; top: 860px; font-family: var(--display); font-size: 160px; letter-spacing: -0.04em; line-height: 1; z-index: 20; white-space: nowrap; }
+  #tagline { position: absolute; left: 0; right: 0; top: 1080px; text-align: center; font-size: 38px; color: var(--text-2); z-index: 20; }
+  #url { position: absolute; left: 50%; top: 1190px; padding: 22px 44px; border-radius: 999px; background: var(--text); color: var(--ink);
+    font-size: 40px; font-weight: 600; white-space: nowrap; z-index: 20; }
+
+  /* phone: the screen is HTML, the body is three.js (module at the end) */
+  #world { perspective: 2600px; perspective-origin: 50% 50%; z-index: 10; }
+  #phone { position: absolute; left: 240px; top: 310px; width: 600px; height: 1300px; transform-style: preserve-3d; }
+  .front { position: absolute; inset: 0; border-radius: 100px; transform-style: preserve-3d; }
+  .screen { position: absolute; left: 16px; top: 16px; width: 568px; height: 1268px; border-radius: 86px; overflow: hidden; background: #050505; }
+  .screen img { position: absolute; left: 0; top: 0; width: 568px; }
+  .island { position: absolute; left: 50%; top: 24px; width: 170px; height: 50px; margin-left: -85px; border-radius: 30px; background: #000; z-index: 5; }
+  .glare { position: absolute; left: 16px; top: 16px; width: 568px; height: 1268px; border-radius: 86px; z-index: 6;
+    background: linear-gradient(118deg, rgba(255,255,255,0) 38%, rgba(255,255,255,.10) 48%, rgba(255,255,255,0) 58%); background-size: 300% 100%; }
+</style>
+</head>
+<body>
+<div id="stage">
+  <canvas id="pc" class="full" width="1080" height="1920"></canvas>
+  <canvas id="gl" class="full" width="1080" height="1920"></canvas>
+  <div class="layer" id="world">
+    <div id="phone">
+      <div class="front">
+        <div class="screen">
+          <img id="shotHero" src="shots/hero.png" style="top:-120px">
+          <img id="shotJourney" src="shots/journey.png">
+        </div>
+        <div class="island"></div>
+        <div class="glare" id="glare"></div>
+      </div>
+    </div>
+  </div>
+  <div class="layer" id="copy"></div>
+  <div class="grain"></div>
+</div>
+<script>
+// ---------- helpers ----------
+const $ = id => document.getElementById(id);
+const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+const p = (t, a, b) => clamp((t - a) / (b - a));
+const lerp = (a, b, k) => a + (b - a) * k;
+const E = {
+  lin: x => x, out: x => 1 - Math.pow(1 - x, 3), in: x => x * x * x,
+  inOut: x => x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2,
+  sine: x => -(Math.cos(Math.PI * x) - 1) / 2,
+};
+const FPS = 30, W = 1080, H = 1920, AMBER = '#FFB224', INK = '#050505';
+
+// keys joined by a monotone cubic (no stops at keys, no overshoot); a key's ease, if given, wins
+function slope(keys, i, c) {
+  if (i === 0 || i === keys.length - 1 || keys[i][2] || keys[i + 1][2]) return 0;
+  const d0 = (keys[i][1][c] - keys[i - 1][1][c]) / (keys[i][0] - keys[i - 1][0]);
+  const d1 = (keys[i + 1][1][c] - keys[i][1][c]) / (keys[i + 1][0] - keys[i][0]);
+  return d0 * d1 <= 0 ? 0 : 2 / (1 / d0 + 1 / d1);
+}
+function track(keys, t) {
+  const n = keys.length;
+  if (t <= keys[0][0]) return { ...keys[0][1] };
+  if (t >= keys[n - 1][0]) return { ...keys[n - 1][1] };
+  let i = 0;
+  while (t > keys[i + 1][0]) i++;
+  const [t0, v0] = keys[i], [t1, v1, en] = keys[i + 1], o = {};
+  const u = (t - t0) / (t1 - t0);
+  if (en) { const k = E[en](u); for (const c in v0) o[c] = v0[c] + (v1[c] - v0[c]) * k; return o; }
+  const h = t1 - t0, u2 = u * u, u3 = u2 * u;
+  for (const c in v0)
+    o[c] = (2 * u3 - 3 * u2 + 1) * v0[c] + (u3 - 2 * u2 + u) * slope(keys, i, c) * h +
+           (3 * u2 - 2 * u3) * v1[c] + (u3 - u2) * slope(keys, i + 1, c) * h;
+  return o;
+}
+
+// ---------- timeline (seconds) ----------
+const S = { helper: 3.2, ask: 6.4, covers: 10.0, seal: 13.2, phone: 15.8, end: 18.75, done: 21.0 };
+const RING_Y = 1180, RING_R = 230;
+
+// ---------- copy ----------
+// [enter, leave, top, html, class]; each line rises and fades in, all of a scene's lines leave together
+const COPY = [
+  [0.35, 3.0, 230, 'Police catch fences'],
+  [0.85, 3.0, 313, 'by running the pawn shop.'],
+  [1.9, 3.0, 430, 'What if AI safety worked the same way?', 'dim'],
+  [3.45, 6.2, 230, 'We took an AI agent’s'],
+  [3.8, 6.2, 313, 'money tools away,'],
+  [4.2, 6.2, 396, 'and gave them to a helper.'],
+  [5.0, 6.2, 520, 'The helper <span class="amber">reports</span> to the monitor.', 'dim'],
+  [6.6, 9.8, 230, 'To move $5,000,'],
+  [7.0, 9.8, 313, 'the agent has to ask.'],
+  [8.3, 9.8, 1560, '<div class="legend"><i></i>honest asks go through</div>', 'small'],
+  [8.7, 9.8, 1630, '<div class="legend"><i class="a"></i><span class="amber">suspicious ones are held</span></div>', 'small'],
+  [10.3, 12.9, 230, 'Seven covers.'],
+  [10.75, 12.9, 313, 'One helper, seven stories about it.', 'dim'],
+  [13.5, 15.6, 1230, 'Does the agent tell its helper the truth,'],
+  [13.95, 15.6, 1396, 'or lie to get the money moved?', 'dim'],
+  [14.7, 15.6, 1600, 'Its private reasoning stays sealed until every score is final.', 'dim small'],
+  [16.2, 18.3, 200, 'Every run. Every request.'],
+  [16.6, 18.3, 283, 'Every score, open to read.', 'dim'],
+];
+const copyEls = COPY.map(([a, b, top, html, cls]) => {
+  const d = document.createElement('div');
+  d.className = 'line ' + (cls || '');
+  d.style.top = top + 'px';
+  d.innerHTML = html;
+  $('copy').appendChild(d);
+  return d;
+});
+
+// seven covers, as the landing names them
+const COVERS = [['C0', 'no helper'], ['C1', 'says it reports'], ['C2', 'ordinary assistant'], ['C3', 'logged assistant'],
+                ['C4', 'joins late'], ['C5', 'did favours before'], ['C6', 'some report, not which']];
+const LANE_Y = COVERS.map((_, i) => 640 + i * 132);
+const laneEls = COVERS.map(([c, name], i) => {
+  const d = document.createElement('div');
+  d.className = 'lane-label';
+  d.style.top = (LANE_Y[i] - 26) + 'px';
+  d.innerHTML = `<b>${c}</b><span>${name}</span>`;
+  $('copy').appendChild(d);
+  return d;
+});
+const sealEl = document.createElement('div');
+sealEl.className = 'seal'; sealEl.style.top = '1150px';
+$('copy').appendChild(sealEl);
+const word = document.createElement('div');
+word.id = 'wordmark'; word.textContent = 'versight';
+$('copy').appendChild(word);
+const tag = document.createElement('div');
+tag.id = 'tagline'; tag.textContent = 'a study of covert informants as an AI control protocol';
+$('copy').appendChild(tag);
+const url = document.createElement('div');
+url.id = 'url'; url.textContent = 'oversight-explorer.vercel.app';
+$('copy').appendChild(url);
+
+// ---------- particles: the landing's Stream, made deterministic (seeded, stepped per frame) ----------
+function mulberry32(a) {
+  return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+}
+const SUSPICIOUS = 60;
+
+// where the ring is, how big, how assembled (0..1 for each particle, by its delay)
+function ringState(t) {
+  if (t >= S.helper && t < S.covers + 0.6) {
+    const out = p(t, S.covers, S.covers + 0.6);
+    return { x: 540, y: RING_Y, R: lerp(RING_R, 170, E.in(out)), alpha: 1 - out, t0: S.helper + 0.1, dur: 1.2 };
+  }
+  if (t >= S.end) return { x: logoX(), y: 940, R: 62, alpha: 1, t0: S.end, dur: 0.9 };
+  return null;
+}
+let LOGO_X = 0;
+const logoX = () => LOGO_X;
+
+function makeSim(seed) {
+  const rnd = mulberry32(seed);
+  const gauss = () => (rnd() + rnd() + rnd() - 1.5) / 1.5;
+  const R0 = RING_R, thick0 = R0 * 0.26, gap = 0.15;
+  const ring = Array.from({ length: Math.round(R0 * R0 * 0.21) }, () => ({
+    a: rnd() * Math.PI * 2, r: 1 + gauss() * 0.26 * 0.55, ph: rnd() * 6, s: 0.5 + rnd() * 0.7,
+    v: (0.00025 + rnd() * 0.0004) * (rnd() < 0.5 ? -1 : 1), d: rnd() * 0.5, sx: rnd() * W, sy: rnd() * H,
+  }));
+  const informant = Array.from({ length: 360 }, () => ({ u: rnd(), v: gauss() * 0.5 + 0.5, ph: rnd() * 6, s: 0.6 + rnd() }));
+  const parts = [], sparks = [], events = [];
+  const density = t => t < S.helper ? 1 : t < S.ask ? 0.45 : t < S.covers ? 1 : t >= S.end + 0.5 ? 0.55 : 0;
+  const hotRate = t => t < S.helper ? 0.1 : t < S.covers ? 0.2 : 0.12;
+  const spawn = (t, x = -10) => {
+    const hot = rnd() < hotRate(t);
+    const rs = ringState(t) || { x: 540, y: RING_Y, R: RING_R };
+    return { x: hot ? Math.min(x, rs.x - rs.R * 1.22 - 20) : x, y: hot ? rs.y + gauss() * rs.R * 0.85 : rs.y + gauss() * 520,
+             v: 2.0 + rnd() * 3.0, s: hot ? 80 : 10 + rnd() * 40, held: false, a: 1, ph: rnd() * 6 };
+  };
+  for (let i = 0; i < 420; i++) parts.push(spawn(0, rnd() * W));
+  let frame = -1;
+  return {
+    ring, informant, parts, sparks, events, gap,
+    get frame() { return frame; },
+    // one video frame: two 60 Hz physics steps
+    step() {
+      frame++;
+      for (let sub = 0; sub < 2; sub++) {
+        const t = (frame + sub / 2) / FPS, ms = t * 1000;
+        const rs = ringState(t);
+        const holding = rs && rs.alpha > 0.5 && t > rs.t0 + rs.dur * 0.8;
+        for (const q of parts) {
+          const hot = q.s > SUSPICIOUS;
+          if (!q.held) {
+            const cy = rs ? rs.y : RING_Y;
+            if (!hot) q.y += (cy - q.y) * 0.0012;
+            q.y += Math.sin(ms / 700 + q.ph) * 0.3;
+            q.x += q.v;
+            if (hot && holding && Math.hypot(q.x - rs.x, q.y - rs.y) < rs.R * 1.22) {
+              q.held = true;
+              events.push(t);
+              for (let i = 0; i < 10; i++) {
+                const a = rnd() * Math.PI * 2, sp = 0.3 + rnd() * 1.0;
+                sparks.push({ x: q.x, y: q.y, vx: Math.cos(a) * sp - 0.5, vy: Math.sin(a) * sp, a: 0.9 });
+              }
+            }
+          } else q.a -= 0.012;
+        }
+        for (const sp of sparks) { sp.x += sp.vx; sp.y += sp.vy; sp.vx *= 0.96; sp.vy *= 0.96; sp.a -= 0.012; }
+        for (let i = sparks.length - 1; i >= 0; i--) if (sparks[i].a <= 0) sparks.splice(i, 1);
+        for (let i = parts.length - 1; i >= 0; i--) if (parts[i].x > W + 10 || parts[i].a <= 0) parts.splice(i, 1);
+        const want = Math.round(420 * density(t));
+        if (parts.length < want) parts.push(spawn(t));
+        for (const d of ring) d.a += d.v;
+      }
+    },
+  };
+}
+
+// ---------- drawing the particle layer ----------
+const pc = $('pc').getContext('2d');
+let sim = null;
+
+// blurred lines of "reasoning" for the seal, drawn once (like the landing's Sealed)
+const sealed = document.createElement('canvas');
+sealed.width = W; sealed.height = H;
+{
+  const c = sealed.getContext('2d');
+  c.filter = 'blur(10px)';
+  for (let row = 0; row < 52; row++) {
+    let px = 40;
+    const y = 40 + row * 36;
+    while (px < W - 60) {
+      const len = 26 + ((row * 37 + px * 13) % 90);
+      c.fillStyle = `rgba(237,235,230,${0.16 + 0.12 * Math.sin(row + px / 80)})`;
+      c.fillRect(px, y, len, 13);
+      px += len + 16;
+    }
+  }
+}
+
+// each lane: faint dust, drawn in from the left; a few traces run along it
+const laneRnd = mulberry32(99);
+const laneDust = LANE_Y.map(y => {
+  const g = () => (laneRnd() + laneRnd() + laneRnd() - 1.5) / 1.5;
+  const out = [];
+  for (let x = 560; x < 1000; x += 3.2) out.push({ x: x + g() * 2, y: y + g() * 2, s: 0.7 + laneRnd() * 0.7, a: 0.18 + laneRnd() * 0.2 });
+  return out;
+});
+const lanePulse = LANE_Y.map((_, i) => [0, 1].map(k => ({ u: laneRnd(), v: 0.18 + laneRnd() * 0.16, amber: (i + k) % 5 === 2 })));
+
+function drawFrame(f) {
+  const t = f / FPS, ms = t * 1000;
+  pc.fillStyle = 'rgba(5,5,5,0.36)';
+  pc.fillRect(0, 0, W, H);
+  // the stream
+  for (const q of sim.parts) {
+    const hot = q.s > SUSPICIOUS;
+    pc.fillStyle = hot ? `rgba(255,178,36,${Math.max(0, q.a)})` : `rgba(237,235,230,${0.34 + q.s / 110})`;
+    const size = hot ? 4 : 3;
+    pc.fillRect(q.x - (q.held ? 0 : q.v * 2), q.y, size + (q.held ? 0 : q.v * 2), size);
+  }
+  for (const sp of sim.sparks) {
+    pc.fillStyle = `rgba(255,178,36,${Math.max(0, sp.a)})`;
+    pc.fillRect(sp.x, sp.y, 3, 3);
+  }
+  // the ring (the helper), built from the same grain; the amber informant sits in the slit
+  const rs = ringState(t);
+  if (rs && rs.alpha > 0.01) {
+    const scale = rs.R / RING_R, thick = rs.R * 0.26;
+    const n = Math.min(sim.ring.length, Math.round(sim.ring.length * Math.min(1, scale * scale * 1.6)));
+    pc.fillStyle = '#F6F5F1';
+    for (let i = 0; i < n; i++) {
+      const d = sim.ring[i];
+      const inGap = Math.abs(((d.a + Math.PI / 2 + Math.PI * 3) % (Math.PI * 2)) - Math.PI) < sim.gap;
+      if (inGap) continue;
+      const k = E.out(p(t, rs.t0 + d.d, rs.t0 + d.d + rs.dur));
+      if (k <= 0) continue;
+      const rr = rs.R * d.r;
+      const x = lerp(d.sx, rs.x + Math.cos(d.a) * rr, k), y = lerp(d.sy, rs.y + Math.sin(d.a) * rr, k);
+      const edge = 1 - Math.min(1, Math.abs(rr - rs.R) / (thick * 0.6));
+      pc.globalAlpha = Math.min(1, rs.alpha * (0.3 + 0.65 * edge) * (0.75 + 0.25 * Math.sin(ms / 1300 + d.ph)) * (0.4 + 0.6 * k) * (scale < 0.5 ? 1.7 : 1));
+      const s = Math.max(0.9, d.s * 1.6 * Math.sqrt(scale));
+      pc.fillRect(x, y, s, s);
+    }
+    const lit = p(t, rs.t0 + rs.dur * 0.9, rs.t0 + rs.dur * 1.25);
+    if (lit > 0) {
+      const slitW = rs.R * 0.09, slitH = thick * 1.15;
+      pc.fillStyle = AMBER;
+      for (const d of sim.informant.slice(0, Math.round(sim.informant.length * Math.max(0.25, scale)))) {
+        pc.globalAlpha = rs.alpha * lit * (0.55 + 0.4 * Math.sin(ms / 1100 + d.ph));
+        const s = Math.max(1.2, d.s * 1.8 * Math.sqrt(scale));
+        pc.fillRect(rs.x - slitW / 2 + d.u * slitW, rs.y - rs.R - slitH / 2 + d.v * slitH, s, s);
+      }
+    }
+    pc.globalAlpha = 1;
+  }
+  // the seven lanes
+  const lanesOn = t >= S.covers && t < S.seal + 0.3;
+  if (lanesOn) {
+    const fade = 1 - p(t, S.seal - 0.3, S.seal + 0.3);
+    LANE_Y.forEach((y, i) => {
+      const reveal = E.out(p(t, S.covers + 0.25 + i * 0.12, S.covers + 0.95 + i * 0.12));
+      pc.fillStyle = '#F6F5F1';
+      for (const d of laneDust[i]) {
+        if (d.x > 560 + 440 * reveal) break;
+        pc.globalAlpha = Math.min(1, d.a * 1.9) * fade;
+        pc.fillRect(d.x, d.y, d.s * 2.2, d.s * 2.2);
+      }
+      if (reveal > 0.95) for (const pu of lanePulse[i]) {
+        const x = 560 + ((pu.u + pu.v * (t - S.covers)) % 1) * 440;
+        pc.fillStyle = pu.amber ? AMBER : '#F6F5F1';
+        for (let k = 0; k < 8; k++) { pc.globalAlpha = (0.95 - k * 0.11) * fade; pc.fillRect(x - k * 6, y - 2.5, 5, 5); }
+      }
+    });
+    pc.globalAlpha = 1;
+  }
+  // the seal: reasoning there to see, not to read; it breathes
+  const sealOn = p(t, S.seal - 0.1, S.seal + 0.6) * (1 - p(t, S.phone - 0.4, S.phone + 0.1));
+  if (sealOn > 0) {
+    pc.globalAlpha = sealOn * (0.55 + 0.25 * Math.sin(ms / 900));
+    pc.drawImage(sealed, 0, 0);
+    pc.globalAlpha = 1;
+  }
+}
+
+// the particle layer only changes per video frame; motion-blur sub-samples within a frame reuse it
+function particlesTo(f) {
+  if (!sim || f < sim.frame) {
+    sim = makeSim(7);
+    pc.fillStyle = INK; pc.fillRect(0, 0, W, H);
+    while (sim.frame < f - 12) sim.step();   // catch up quietly, then draw the frames that make the trails
+  }
+  while (sim.frame < f) { sim.step(); drawFrame(sim.frame); }
+}
+
+// every held request, for the soundtrack (render.py events)
+window.collectEvents = () => {
+  const s = makeSim(7);
+  while (s.frame < Math.round(S.done * FPS)) s.step();
+  return s.events;
+};
+
+// ---------- phone ----------
+const PHONE = [
+  [S.phone, { x: 0, y: 1500, s: 0.82, rx: 35, ry: -25, rz: -14 }],
+  [16.7, { x: 0, y: 180, s: 0.82, rx: 12, ry: -20, rz: -7 }, 'out'],
+  [18.3, { x: 0, y: 140, s: 0.84, rx: 8, ry: -27, rz: -9 }],
+  [19.05, { x: 0, y: -260, s: 0.5, rx: 22, ry: -40, rz: -14 }, 'in'],
+];
+
+// ---------- render ----------
+function render(t) {
+  particlesTo(Math.round(t * FPS));
+
+  copyEls.forEach((el, i) => {
+    const [a, b] = COPY[i];
+    const k = E.out(p(t, a, a + 0.35)), out = p(t, b, b + 0.25);
+    el.style.opacity = k * (1 - out);
+    el.style.transform = `translateY(${lerp(30, 0, k) - 20 * E.in(out)}px)`;
+  });
+  laneEls.forEach((el, i) => {
+    const k = E.out(p(t, S.covers + 0.25 + i * 0.12, S.covers + 0.6 + i * 0.12)), out = p(t, S.seal - 0.3, S.seal);
+    el.style.opacity = k * (1 - out);
+    el.style.transform = `translateX(${lerp(-24, 0, k)}px)`;
+  });
+  const sk = E.out(p(t, 14.55, 14.9)) * (1 - p(t, 15.6, 15.85));
+  sealEl.style.opacity = sk;
+  sealEl.style.width = (420 * sk) + 'px';
+
+  // phone
+  const on = t >= S.phone && t < 19.1;
+  $('world').style.display = on ? '' : 'none';
+  $('gl').style.visibility = on ? 'visible' : 'hidden';
+  if (on) {
+    const P = track(PHONE, t);
+    const fz = 0.6 * Math.sin(t * 0.9);
+    $('phone').style.transform =
+      `translate3d(${P.x}px, ${P.y}px, 0) rotateX(${P.rx}deg) rotateY(${P.ry}deg) rotateZ(${P.rz + fz}deg) scale3d(${P.s}, ${P.s}, ${P.s})`;
+    const fade = 1 - p(t, 18.55, 19.05);
+    $('world').style.opacity = fade;
+    $('gl').style.opacity = fade;
+    if (window.renderGL) renderGL({ x: P.x, y: P.y, rx: P.rx, ry: P.ry, rz: P.rz + fz, s: P.s });
+    $('glare').style.backgroundPosition = `${50 + P.ry * 2.2 + P.rz}% 0`;
+    const sw = E.inOut(p(t, 17.15, 17.4));
+    $('shotHero').style.opacity = 1 - sw;
+    $('shotJourney').style.opacity = sw;
+    $('shotJourney').style.transform = `translateY(${-1150 * E.inOut(p(t, 17.3, 18.5))}px)`;
+  }
+
+  // end card: the ring is the O of "Oversight"
+  const wk = E.out(p(t, S.end + 0.45, S.end + 0.9));
+  word.style.opacity = wk;
+  word.style.transform = `translateX(${lerp(30, 0, wk)}px)`;
+  const tk = E.out(p(t, S.end + 0.85, S.end + 1.2));
+  tag.style.opacity = tk;
+  tag.style.transform = `translateY(${lerp(20, 0, tk)}px)`;
+  const uk = E.out(p(t, S.end + 1.15, S.end + 1.5));
+  url.style.opacity = uk;
+  url.style.transform = `translate(-50%, ${lerp(24, 0, uk)}px)`;
+}
+
+// the wordmark sits right of the ring; together they are centred
+function layoutLogo() {
+  const w = word.getBoundingClientRect().width, ringW = 62 * 2 * 1.3, gap = 6;
+  const left = (W - (ringW + gap + w)) / 2;
+  LOGO_X = left + ringW / 2;
+  word.style.left = (left + ringW + gap) + 'px';
+}
+
+window.render = render;
+window.DURATION = S.done;
+window.MOTION_BLUR = [[S.phone, 16.8], [18.4, 19.1]];
+document.fonts.ready.then(layoutLogo);
+</script>
+
+<script type="importmap">
+{ "imports": { "three": "./node_modules/three/build/three.module.js", "three/addons/": "./node_modules/three/examples/jsm/" } }
+</script>
+<script type="module">
+// The phone body is real 3D; the screen is the HTML above it. The camera reproduces the page's CSS
+// perspective (2600 px, centred), and renderGL() gets the same pose as #phone, so the two line up.
+import * as THREE from 'three';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+
+const W = 1080, H = 1920, PERSP = 2600, D2R = Math.PI / 180;
+const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('gl'), alpha: true, antialias: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(1);
+renderer.setSize(W, H, false);
+renderer.setClearColor(0x000000, 0);
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+const scene = new THREE.Scene();
+scene.environment = new THREE.PMREMGenerator(renderer).fromScene(new RoomEnvironment(renderer), 0.04).texture;
+const camera = new THREE.PerspectiveCamera(2 * Math.atan(H / 2 / PERSP) / D2R, W / H, 10, 20000);
+camera.position.set(0, 0, PERSP);
+// on a black stage the frame reads by its edges: a key from the upper left, a warm rim from the right
+const key = new THREE.DirectionalLight(0xffffff, 2.0);
+key.position.set(-700, 1000, 1800);
+scene.add(key);
+const rim = new THREE.DirectionalLight(0xffe2b0, 4);
+rim.position.set(1600, 600, -500);
+scene.add(rim);
+
+function roundedRect(w, h, r) {
+  const sh = new THREE.Shape(), x = w / 2, y = h / 2;
+  sh.moveTo(-x + r, -y);
+  sh.lineTo(x - r, -y); sh.absarc(x - r, -y + r, r, -Math.PI / 2, 0);
+  sh.lineTo(x, y - r); sh.absarc(x - r, y - r, r, 0, Math.PI / 2);
+  sh.lineTo(-x + r, y); sh.absarc(-x + r, y - r, r, Math.PI / 2, Math.PI);
+  sh.lineTo(-x, -y + r); sh.absarc(-x + r, -y + r, r, Math.PI, Math.PI * 1.5);
+  return sh;
+}
+const PW = 600, PH = 1300, R = 100, T = 40, BS = 12, BT = 10;
+const bodyGeo = new THREE.ExtrudeGeometry(roundedRect(PW - 2 * BS, PH - 2 * BS, R - BS),
+  { depth: T - 2 * BT, bevelEnabled: true, bevelThickness: BT, bevelSize: BS, bevelSegments: 10, curveSegments: 48 });
+bodyGeo.translate(0, 0, -(T - BT));
+const glass = new THREE.MeshPhysicalMaterial({ color: 0x060607, roughness: 0.1, clearcoat: 1, clearcoatRoughness: 0.03 });
+const titanium = new THREE.MeshPhysicalMaterial({ color: 0x6a6a70, metalness: 1, roughness: 0.3 });
+const phone = new THREE.Group();
+phone.add(new THREE.Mesh(bodyGeo, [glass, titanium]));
+for (const [side, top, h] of [[-1, 250, 70], [-1, 360, 120], [-1, 510, 120], [1, 400, 180]]) {
+  const b = new THREE.Mesh(new RoundedBoxGeometry(10, h, 14, 4, 4), titanium);
+  b.position.set(side * (PW / 2 + 2), -(top + h / 2 - PH / 2), -T / 2);
+  phone.add(b);
+}
+scene.add(phone);
+
+window.renderGL = P => {
+  phone.position.set(P.x, -P.y, 0);
+  phone.rotation.set(-P.rx * D2R, P.ry * D2R, -P.rz * D2R, 'XYZ');
+  phone.scale.setScalar(P.s);
+  renderer.render(scene, camera);
+};
+window.GL_READY = true;
+</script>
+</body>
+</html>
