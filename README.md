@@ -159,6 +159,7 @@ Work in progress. There are no results yet.
 | [`scripts/`](scripts/) | Run experiments, split logs, rescore, analyse, export the explorer snapshot |
 | [`explorer/`](explorer/) | A read-only run explorer: every episode, request and monitor score, with agent reasoning kept sealed |
 | [`tests/`](tests/) | Mock-model tests for every part of the protocol |
+| [`data/`](data/) | Every run as the explorer shows it: transcripts, requests, monitor scores and outcomes, with agent reasoning sealed |
 | [`docs/`](docs/) | Framing, methods, plan, decisions, gotchas, citations and setup |
 
 Setup and running: [SETUP.md](docs/guides/SETUP.md).
