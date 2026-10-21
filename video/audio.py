@@ -326,7 +326,7 @@ def write(path, x):
 out = sys.argv[1]
 raw = tempfile.mktemp(suffix=".wav")
 write(raw, mix)
-target = "I=-14:TP=-1.5:LRA=11"
+target = "I=-14:TP=-2.0:LRA=11"  # headroom: AAC encoding lifts peaks
 probe = subprocess.run(["ffmpeg", "-hide_banner", "-i", raw, "-af", f"loudnorm={target}:print_format=json", "-f", "null", "-"],
                        capture_output=True, text=True).stderr
 m = json.loads(probe[probe.rindex("{"):probe.rindex("}") + 1])

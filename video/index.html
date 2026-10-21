@@ -455,7 +455,7 @@ const PHONE = [
   [S.phone, { x: 0, y: 1500, s: 0.82, rx: 35, ry: -25, rz: -14 }],
   [20.3, { x: 0, y: 180, s: 0.82, rx: 12, ry: -20, rz: -7 }, 'out'],
   [21.9, { x: 0, y: 140, s: 0.84, rx: 8, ry: -27, rz: -9 }],
-  [22.65, { x: 0, y: -260, s: 0.5, rx: 22, ry: -40, rz: -14 }, 'in'],
+  [23.1, { x: 0, y: -520, s: 0.3, rx: 30, ry: -48, rz: -18 }, 'in'],  // still moving when it has faded out (22.65)
 ];
 
 // ---------- render ----------
@@ -520,6 +520,7 @@ function layoutLogo() {
 window.render = render;
 window.DURATION = S.done;
 window.MOTION_BLUR = [[S.phone, 20.4], [22.0, 22.7]];
+window.PHONE_SHOWN = [S.phone, 22.65];  // after this the phone is faded out
 document.fonts.ready.then(layoutLogo);
 </script>
 

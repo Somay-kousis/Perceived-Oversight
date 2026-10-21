@@ -58,7 +58,8 @@ from playwright.sync_api import sync_playwright  # noqa: E402
 with sync_playwright() as p:
     browser, page, _ = render.open_page(p)
     paths = page.evaluate("""() => {
-      const o = []; for (let i = Math.round(PHONE[0][0] * 30); i <= Math.round(PHONE[PHONE.length - 1][0] * 30); i++) o.push(track(PHONE, i / 30));
+      const [a, z] = window.PHONE_SHOWN;  // only while it can be seen
+      const o = []; for (let i = Math.round(a * 30); i <= Math.round(z * 30); i++) o.push(track(PHONE, i / 30));
       return [o]; }""")
     browser.close()
 bad = []
